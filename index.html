@@ -219,6 +219,11 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 .eb-empty{color:#bbb}
 .eb-edit{width:100%;border:1px solid var(--jade);border-radius:6px;padding:.5rem;font-family:inherit;
   font-size:1.05rem;line-height:1.85;resize:none;background:#fffdf7;min-height:2.4em}
+.eb-actions{display:flex;gap:.5rem;margin-top:.5rem}
+.eb-submit{border:0;background:var(--jade-dark);color:#fff;border-radius:6px;padding:.4rem 1.1rem;font-size:.9rem;font-weight:600;cursor:pointer}
+.eb-submit:hover{background:var(--jade)}
+.eb-cancel{border:1px solid var(--line);background:#fff8ec;color:var(--ink-soft);border-radius:6px;padding:.4rem .9rem;font-size:.9rem;cursor:pointer}
+.eb-cancel:hover{background:var(--paper-deep)}
 .eblock.lv-ch{background:#fcf0e8;border-color:#e8c4ad}
 .eblock.lv-ch .eb-text{font-size:1.35rem;font-weight:600;color:var(--cinnabar)}
 .eblock.lv-sec{background:#fdf6e3}
@@ -840,14 +845,36 @@ function blockCard(b){
     if(dragKey&&dragKey!==b.key)moveBlock(dragKey,b.key,after);dragKey=null;});
   return card;
 }
+function closeEditor(card,key,val){
+  const tx=card.querySelector('.eb-text');
+  tx.innerHTML=renderText(key,val)||'<span class="eb-empty">（空白，點「改字」輸入）</span>';
+}
+function commitOpenEditors(){
+  document.querySelectorAll('.eblock .eb-text textarea').forEach(ta=>{
+    const card=ta.closest('.eblock'); const key=card.dataset.key; const v=ta.value;
+    if(v!==(BLOCKS[key].text||'')) saveBlock(key,{text:v});
+    closeEditor(card,key,v);
+  });
+}
 function startEdit(card,key){
   const tx=card.querySelector('.eb-text'); if(tx.querySelector('textarea'))return;
+  commitOpenEditors();                       // only one editor open at a time
   const cur=BLOCKS[key].text||'';
-  const ta=el('textarea','eb-edit'); ta.value=cur; tx.innerHTML=''; tx.append(ta);
+  tx.innerHTML='';
+  const ta=el('textarea','eb-edit'); ta.value=cur;
+  const actions=el('div','eb-actions');
+  const ok=el('button','eb-submit','✓ 送出');
+  const cancel=el('button','eb-cancel','取消');
+  actions.append(ok,cancel);
+  tx.append(ta,actions);
   const grow=()=>{ta.style.height='auto';ta.style.height=(ta.scrollHeight+4)+'px';};
   ta.focus(); grow(); ta.oninput=grow;
-  ta.onblur=async()=>{ const v=ta.value; if(v!==cur) await saveBlock(key,{text:v});
-    tx.innerHTML=renderText(key,v)||'<span class="eb-empty">（空白，點「改字」輸入）</span>'; };
+  ok.onclick=async()=>{ const v=ta.value; if(v!==cur) await saveBlock(key,{text:v}); closeEditor(card,key,v); };
+  cancel.onclick=()=>closeEditor(card,key,cur);
+  ta.onkeydown=e=>{
+    if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();ok.click();}
+    if(e.key==='Escape'){e.preventDefault();cancel.click();}
+  };
 }
 function exportContent(){
   const data={title:DATA.title,subtitle:DATA.subtitle,frontMatter:DATA.frontMatter,blocks:BLOCKS,exportedAt:new Date().toISOString()};
