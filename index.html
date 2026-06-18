@@ -39,6 +39,7 @@ a{color:var(--jade-dark)}
 .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6rem;
   padding:.5rem .9rem;background:rgba(244,236,218,.92);backdrop-filter:blur(6px);
   border-bottom:1px solid var(--line)}
+body.on-cover .topbar{display:none}
 .topbar .home{font-family:"Noto Serif TC",serif;font-weight:900;font-size:1.4rem;color:var(--cinnabar);
   text-decoration:none;display:flex;align-items:center;gap:.4rem}
 .topbar .spacer{flex:1}
@@ -64,15 +65,12 @@ a{color:var(--jade-dark)}
 .mode.edit button{background:var(--cinnabar)}
 
 /* ---------- cover ---------- */
-#cover{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+#cover{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:3.4rem 1.2rem 4rem;text-align:center;position:relative;overflow:hidden;
-  background:radial-gradient(120% 90% at 50% 0%, #34302a 0%, #23211d 55%, #1a1916 100%);
-  color:#EDE3CC}
+  background:#13161a url("assets/cover-shanshui.jpg") center center / cover no-repeat;
+  background-attachment:fixed;color:#EDE3CC}
 #cover .scroll-bg{display:block;position:absolute;inset:0;z-index:0;
-  background:url("assets/cover-bg.jpg") center bottom / cover no-repeat;
-  opacity:.16;mix-blend-mode:screen;
-  -webkit-mask-image:linear-gradient(180deg,transparent 8%,#000 60%);
-  mask-image:linear-gradient(180deg,transparent 8%,#000 60%)}
+  background:linear-gradient(180deg, rgba(14,16,20,.55) 0%, rgba(14,16,20,.32) 38%, rgba(14,16,20,.82) 100%)}
 #cover .inner{position:relative;z-index:1;width:100%;max-width:980px}
 #cover .logo{width:300px;max-width:64vw;margin:0 auto .4rem;display:block;
   filter:drop-shadow(0 4px 14px rgba(0,0,0,.45))}
@@ -146,12 +144,13 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   background:rgba(26,25,22,.55);backdrop-filter:blur(2px);padding:1rem}
 #panel.open{display:flex}
 #panel .pcard{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:14px;
-  width:min(620px,96vw);max-height:88vh;overflow:auto;padding:1.8rem 1.8rem 2rem;
-  box-shadow:0 20px 60px rgba(0,0,0,.4)}
+  width:96vw;max-width:1180px;height:92vh;overflow:auto;padding:2.4rem clamp(1.4rem,4vw,3.2rem) 2.6rem;
+  box-shadow:0 20px 60px rgba(0,0,0,.45)}
 #panel h4{font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);font-size:1.3rem;margin-bottom:.3rem}
-#panel .quote-of{color:var(--ink-soft);border-left:3px solid var(--ochre);padding-left:.6rem;margin:.4rem 0 1rem}
-#panel .note{white-space:pre-wrap;font-size:1.05rem;margin-bottom:1rem}
-#panel img{max-width:100%;border-radius:8px;margin:.5rem 0;border:1px solid var(--line)}
+#panel .quote-of{color:var(--ink-soft);border-left:3px solid var(--ochre);padding-left:.7rem;
+  margin:.2rem 0 1.2rem;font-size:calc(1.05rem * var(--reading-scale))}
+#panel .note{white-space:pre-wrap;font-size:calc(1.15rem * var(--reading-scale));line-height:1.95;margin-bottom:1.2rem}
+#panel img{display:block;max-width:100%;max-height:74vh;margin:1rem auto;border-radius:8px;border:1px solid var(--line)}
 #panel .lk{display:block;margin:.35rem 0;padding:.5rem .7rem;background:var(--paper);border-radius:7px;text-decoration:none}
 #panel .close{position:absolute;top:.7rem;right:.8rem;border:0;background:transparent;font-size:1.5rem;color:var(--ink-soft)}
 #panel .edit-actions{display:flex;gap:.6rem;margin-top:1rem}
@@ -380,8 +379,8 @@ function route(){
   }
   showCover();
 }
-function showCover(){$('#cover').classList.remove('hidden');$('#reader').classList.add('hidden');window.scrollTo(0,0);}
-function showReader(){$('#cover').classList.add('hidden');$('#reader').classList.remove('hidden');}
+function showCover(){document.body.classList.add('on-cover');$('#cover').classList.remove('hidden');$('#reader').classList.add('hidden');window.scrollTo(0,0);}
+function showReader(){document.body.classList.remove('on-cover');$('#cover').classList.add('hidden');$('#reader').classList.remove('hidden');}
 
 /* ---------- render front matter ---------- */
 function renderFront(which){
@@ -504,7 +503,7 @@ document.addEventListener('click',e=>{
 /* ---------- view panel ---------- */
 function openPanel(ann){
   const b=$('#panelBody');
-  let html=`<h4>註解</h4><div class="quote-of">「${esc(ann.selectedText)}」</div>`;
+  let html=`<div class="quote-of">「${esc(ann.selectedText)}」</div>`;
   if(ann.note) html+=`<div class="note">${esc(ann.note)}</div>`;
   (ann.images||[]).forEach(im=>html+=`<img src="${esc(im.url)}" alt="">`);
   (ann.links||[]).forEach(lk=>html+=`<a class="lk" href="${esc(lk.url)}" target="_blank" rel="noopener">🔗 ${esc(lk.label||lk.url)}</a>`);
