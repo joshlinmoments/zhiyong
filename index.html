@@ -20,16 +20,16 @@
 html,body{height:100%}
 body{
   font-family:"Noto Serif TC",serif; color:var(--ink);
-  background:var(--paper);
+  background:#FCFBF8;
   background-image:
-    linear-gradient(rgba(244,236,218,.86), rgba(244,236,218,.86)),
+    linear-gradient(rgba(252,251,248,.93), rgba(252,251,248,.93)),
     url("assets/paper-texture.jpg");
   background-size:auto, 760px;
   line-height:1.95;
 }
-/* fixed ink-wash backdrop, visible behind the whole site */
+/* fixed ink-wash backdrop — a faint hint so white stays dominant */
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
-  background:url("assets/cover-bg.jpg") center bottom / cover no-repeat;opacity:.28}
+  background:url("assets/cover-bg.jpg") center bottom / cover no-repeat;opacity:.10}
 .brush{font-family:"Noto Serif TC",serif;font-weight:900}
 .hidden{display:none!important}
 button{font-family:inherit;cursor:pointer}
@@ -37,7 +37,7 @@ a{color:var(--jade-dark)}
 
 /* ---------- top bar ---------- */
 .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6rem;
-  padding:.5rem .9rem;background:rgba(244,236,218,.92);backdrop-filter:blur(6px);
+  padding:.5rem .9rem;background:rgba(252,251,248,.94);backdrop-filter:blur(6px);
   border-bottom:1px solid var(--line)}
 body.on-cover .topbar{display:none}
 .topbar .home{font-family:"Noto Serif TC",serif;font-weight:900;font-size:1.4rem;color:var(--cinnabar);
@@ -70,7 +70,7 @@ body.on-cover .topbar{display:none}
   background:#13161a url("assets/cover-shanshui.jpg") center center / cover no-repeat;
   background-attachment:fixed;color:#EDE3CC}
 #cover .scroll-bg{display:block;position:absolute;inset:0;z-index:0;
-  background:linear-gradient(180deg, rgba(14,16,20,.55) 0%, rgba(14,16,20,.32) 38%, rgba(14,16,20,.82) 100%)}
+  background:linear-gradient(180deg, rgba(14,16,20,.60) 0%, rgba(14,16,20,.40) 45%, rgba(14,16,20,.80) 100%)}
 #cover .inner{position:relative;z-index:1;width:100%;max-width:980px}
 #cover .logo{width:300px;max-width:64vw;margin:0 auto .4rem;display:block;
   filter:drop-shadow(0 4px 14px rgba(0,0,0,.45))}
@@ -99,7 +99,7 @@ body.on-cover .topbar{display:none}
 #reader{display:grid;grid-template-columns:260px 1fr;min-height:100vh;transition:grid-template-columns .2s}
 #reader.nav-collapsed{grid-template-columns:1fr}
 #reader.nav-collapsed #sidebar{display:none}
-#sidebar{border-right:1px solid var(--line);background:rgba(234,223,198,.5);
+#sidebar{border-right:1px solid var(--line);background:rgba(250,249,245,.72);
   padding:1rem .6rem 3rem;position:sticky;top:50px;align-self:start;max-height:calc(100vh - 50px);overflow:auto}
 #sidebar .sb-home{display:block;font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);
   font-size:1.2rem;text-decoration:none;margin:.2rem .4rem 1rem}
