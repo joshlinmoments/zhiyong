@@ -36,13 +36,14 @@ button{font-family:inherit;cursor:pointer}
 a{color:var(--jade-dark)}
 
 /* ---------- top bar ---------- */
-.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.55rem;
+.topbar{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;gap:.55rem;
   padding:0 .9rem;height:52px;background:#1c1c1c;border-bottom:1px solid #000;color:#fff}
+body:not(.on-cover) #reader{padding-top:52px}
 body.on-cover .topbar{display:none}
 .topbar .home{font-family:"Noto Serif TC",serif;font-weight:600;font-size:1.25rem;color:#fff;
   text-decoration:none;display:flex;align-items:center;gap:.45rem}
 .topbar .spacer{flex:1}
-.seal-img{width:30px;height:30px;object-fit:contain;display:block;background:#fff;border-radius:5px;padding:1px}
+.seal-img{width:30px;height:30px;object-fit:contain;display:block}
 
 /* uniform control sizing on the bar */
 .topbar .tb-icon,.topbar .fsctl,.topbar .seg-toggle,.topbar .present-cta{
@@ -110,7 +111,7 @@ body.on-cover .topbar{display:none}
 #reader.nav-collapsed{grid-template-columns:1fr}
 #reader.nav-collapsed #sidebar{display:none}
 #sidebar{border-right:1px solid var(--line);background:rgba(250,249,245,.72);
-  padding:1rem .6rem 3rem;position:sticky;top:50px;align-self:start;max-height:calc(100vh - 50px);overflow:auto}
+  padding:1rem .6rem 3rem;position:sticky;top:52px;align-self:start;max-height:calc(100vh - 52px);overflow:auto}
 #sidebar .sb-home{display:block;font-family:"Noto Serif TC",serif;font-weight:600;color:var(--cinnabar);
   font-size:1.2rem;text-decoration:none;margin:.2rem .4rem 1rem}
 .sb-ch{margin-bottom:.15rem}
@@ -133,8 +134,8 @@ body.present-mode #content{max-width:none;padding:2.2rem clamp(1.5rem,4vw,5rem) 
 .sec-head .bar{width:6px;height:1.5em;background:var(--cinnabar);border-radius:3px}
 .sec-head h3{font-size:calc(1.45rem * var(--reading-scale));font-weight:600;letter-spacing:.1rem}
 
-.unit{font-size:calc(1.16rem * var(--reading-scale));margin:1rem 0;text-align:justify}
-.unit.prose{text-indent:2em}
+.unit{font-size:calc(1.16rem * var(--reading-scale));margin:1.7rem 0 .9rem;text-align:justify}
+.unit.prose{text-indent:0}
 .unit.quote{position:relative;border-left:3px solid var(--jade);padding:.2rem 0 .2rem 1.3rem;
   text-indent:0;font-size:calc(1.08rem * var(--reading-scale));color:#4a443c}
 
@@ -154,7 +155,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   background:rgba(26,25,22,.55);backdrop-filter:blur(2px);padding:1rem}
 #panel.open{display:flex}
 #panel .pcard{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:14px;
-  width:96vw;max-width:1180px;height:92vh;overflow:auto;padding:2.4rem clamp(1.4rem,4vw,3.2rem) 2.6rem;
+  width:min(900px,94vw);max-height:88vh;overflow:auto;padding:2.2rem clamp(1.4rem,4vw,2.8rem) 2.4rem;
   box-shadow:0 20px 60px rgba(0,0,0,.45)}
 #panel h4{font-family:"Noto Serif TC",serif;font-weight:600;color:var(--cinnabar);font-size:1.3rem;margin-bottom:.3rem}
 #panel .quote-of{color:var(--ink-soft);border-left:3px solid var(--ochre);padding-left:.7rem;
@@ -200,7 +201,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 
 @media(max-width:760px){
   #reader{grid-template-columns:1fr}
-  #sidebar{position:fixed;left:0;top:50px;bottom:0;width:78%;z-index:40;transform:translateX(-100%);
+  #sidebar{position:fixed;left:0;top:52px;bottom:0;width:78%;z-index:40;transform:translateX(-100%);
     transition:.25s;max-height:none}
   #sidebar.open{transform:translateX(0)}
   .sb-toggle{display:inline-flex!important}
