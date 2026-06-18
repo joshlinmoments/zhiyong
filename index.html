@@ -64,29 +64,38 @@ a{color:var(--jade-dark)}
 .mode.edit button{background:var(--cinnabar)}
 
 /* ---------- cover ---------- */
-#cover{min-height:calc(100vh - 0px);display:flex;flex-direction:column;align-items:center;
-  padding:3rem 1.2rem 4rem;text-align:center;position:relative;overflow:hidden}
-#cover .scroll-bg{display:none}
-#cover .inner{position:relative;z-index:1;width:100%;max-width:960px}
-#cover .logo{width:160px;max-width:42vw;margin:0 auto 1rem;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
-#cover h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(2.6rem,9vw,5rem);letter-spacing:.4rem;
-  color:var(--ink);margin:.2rem 0}
-#cover .sub{color:var(--ochre);letter-spacing:.35rem;font-size:1rem;margin-bottom:2.2rem}
-.frontrow{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:0 auto 2.4rem}
-.frontrow .fcard{border:1.5px solid var(--jade);border-radius:10px;background:#fff8ec;
-  padding:.7rem 1.5rem;font-size:1.05rem;color:var(--jade-dark);text-decoration:none;
-  display:flex;align-items:center;gap:.5rem}
-.frontrow .fcard:hover{background:var(--jade);color:#fff}
-.frontrow .fcard .mk{font-family:"Noto Serif TC",serif;font-weight:900}
+#cover{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:3.4rem 1.2rem 4rem;text-align:center;position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 0%, #34302a 0%, #23211d 55%, #1a1916 100%);
+  color:#EDE3CC}
+#cover .scroll-bg{display:block;position:absolute;inset:0;z-index:0;
+  background:url("assets/cover-bg.jpg") center bottom / cover no-repeat;
+  opacity:.16;mix-blend-mode:screen;
+  -webkit-mask-image:linear-gradient(180deg,transparent 8%,#000 60%);
+  mask-image:linear-gradient(180deg,transparent 8%,#000 60%)}
+#cover .inner{position:relative;z-index:1;width:100%;max-width:980px}
+#cover .logo{width:300px;max-width:64vw;margin:0 auto .4rem;display:block;
+  filter:drop-shadow(0 4px 14px rgba(0,0,0,.45))}
+#cover h1{font-family:"Noto Serif TC",serif;font-weight:500;font-size:clamp(1.4rem,3.4vw,2rem);
+  letter-spacing:.55rem;color:#EDE3CC;margin:.2rem 0 .2rem;text-indent:.55rem}
+#cover .sub{color:var(--ochre);letter-spacing:.4rem;font-size:.82rem;margin-bottom:2.6rem;opacity:.85}
+.frontrow{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin:0 auto 2.6rem}
+.frontrow .fcard{border:1px solid rgba(237,227,204,.22);border-radius:10px;background:rgba(255,255,255,.04);
+  padding:.7rem 1.6rem;font-size:1.02rem;color:#EDE3CC;text-decoration:none;
+  display:flex;align-items:center;gap:.55rem;transition:.18s}
+.frontrow .fcard:hover{background:rgba(110,156,138,.22);border-color:var(--jade)}
+.frontrow .fcard .mk{color:var(--ochre);font-size:.95rem}
 
-.toc-title{display:flex;align-items:center;gap:1rem;margin:1.5rem 0 1.1rem;color:var(--ink-soft)}
-.toc-title::before,.toc-title::after{content:"";height:1px;background:var(--line);flex:1}
-.chaptergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.9rem;text-align:left}
-.chcard{display:flex;align-items:center;gap:.8rem;border:1px solid var(--line);border-radius:10px;
-  background:rgba(255,250,238,.85);padding:.85rem 1rem;text-decoration:none;color:var(--ink);transition:.15s}
-.chcard:hover{border-color:var(--jade);transform:translateY(-2px);box-shadow:0 6px 16px rgba(79,122,105,.15)}
-.chcard .num{font-family:"Noto Serif TC",serif;font-weight:900;font-size:1.7rem;color:var(--cinnabar);min-width:2rem;text-align:center}
-.chcard .nm{font-size:1.08rem;font-weight:500}
+.toc-title{display:flex;align-items:center;gap:1rem;margin:1.6rem 0 1.2rem;color:rgba(237,227,204,.65);
+  letter-spacing:.4rem;font-size:.9rem}
+.toc-title::before,.toc-title::after{content:"";height:1px;background:rgba(237,227,204,.22);flex:1}
+.chaptergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:.7rem;text-align:left}
+.chcard{display:flex;align-items:center;gap:.9rem;border:1px solid rgba(237,227,204,.13);border-radius:8px;
+  background:rgba(255,255,255,.03);padding:.7rem 1.1rem;text-decoration:none;color:#EDE3CC;transition:.18s}
+.chcard:hover{border-color:var(--ochre);background:rgba(200,160,99,.12)}
+.chcard .num{font-size:.98rem;color:var(--ochre);min-width:2rem;text-align:center;letter-spacing:.04rem;
+  border-right:1px solid rgba(237,227,204,.18);padding-right:.75rem}
+.chcard .nm{font-size:1.02rem;font-weight:500;letter-spacing:.02rem}
 
 /* ---------- reader ---------- */
 #reader{display:grid;grid-template-columns:260px 1fr;min-height:100vh;transition:grid-template-columns .2s}
@@ -105,6 +114,10 @@ a{color:var(--jade-dark)}
 .sb-secs a:hover{background:var(--paper-deep);color:var(--ink)}
 
 #content{padding:2.2rem clamp(1rem,5vw,4rem) 6rem;max-width:880px;margin:0 auto;width:100%}
+.present-btn{border:1px solid var(--line);background:#fff8ec;border-radius:999px;padding:.35rem .85rem;color:var(--ink-soft);font-size:.9rem}
+.present-btn:hover{background:var(--paper-deep)}
+.present-btn.on{background:var(--cinnabar);color:#fff;border-color:var(--cinnabar)}
+body.present-mode #content{max-width:none;padding:2.2rem clamp(1.5rem,4vw,5rem) 5rem}
 .ch-head{text-align:center;margin:1rem 0 2.4rem}
 .ch-head .seal-num{font-family:"Noto Serif TC",serif;font-weight:900;font-size:2rem;color:var(--cinnabar)}
 .ch-head h2{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(2rem,5vw,3rem);letter-spacing:.3rem;margin-top:.3rem}
@@ -114,9 +127,11 @@ a{color:var(--jade-dark)}
 
 .unit{font-size:calc(1.16rem * var(--reading-scale));margin:1rem 0;text-align:justify}
 .unit.prose{text-indent:2em}
-.unit.quote{position:relative;background:rgba(110,156,138,.08);border:1px solid var(--jade);
-  border-left:5px solid var(--jade);border-radius:8px;padding:1rem 1.2rem;text-indent:0;
-  font-size:calc(1.1rem * var(--reading-scale));color:var(--ink)}
+.unit.quote{position:relative;border-left:3px solid var(--jade);padding:.2rem 0 .2rem 1.3rem;
+  text-indent:0;font-size:calc(1.08rem * var(--reading-scale));color:#4a443c}
+
+.motto-line{text-align:center;font-weight:700;letter-spacing:.35rem;
+  font-size:calc(1.9rem * var(--reading-scale));margin:1.1rem 0;color:var(--ink)}
 
 mark.anno{background:rgba(178,58,46,.16);border-bottom:2px solid var(--cinnabar);
   border-radius:2px;cursor:pointer;padding:0 1px}
@@ -127,10 +142,12 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   border-radius:999px;padding:.4rem .9rem;font-size:.9rem;box-shadow:0 4px 12px rgba(0,0,0,.25)}
 
 /* side panel (view annotation) */
-#panel{position:fixed;top:0;right:0;width:min(380px,90vw);height:100%;background:#fff8ec;
-  border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.12);z-index:60;
-  transform:translateX(100%);transition:.25s;padding:1.2rem;overflow:auto}
-#panel.open{transform:translateX(0)}
+#panel{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(26,25,22,.55);backdrop-filter:blur(2px);padding:1rem}
+#panel.open{display:flex}
+#panel .pcard{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  width:min(620px,96vw);max-height:88vh;overflow:auto;padding:1.8rem 1.8rem 2rem;
+  box-shadow:0 20px 60px rgba(0,0,0,.4)}
 #panel h4{font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);font-size:1.3rem;margin-bottom:.3rem}
 #panel .quote-of{color:var(--ink-soft);border-left:3px solid var(--ochre);padding-left:.6rem;margin:.4rem 0 1rem}
 #panel .note{white-space:pre-wrap;font-size:1.05rem;margin-bottom:1rem}
@@ -184,6 +201,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
     <input type="range" id="fsRange" min="90" max="190" step="5" value="100" aria-label="字級大小">
     <span class="a-end a-lg">A</span>
   </div>
+  <button class="present-btn" id="presentBtn" title="簡報模式（滿版）">簡報</button>
   <div class="mode" id="modeBox">
     <span class="dot"></span><span id="modeLabel">瀏覽</span>
     <button id="modeBtn">切換編輯</button>
@@ -194,7 +212,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 <section id="cover">
   <div class="scroll-bg"></div>
   <div class="inner">
-    <img class="logo" src="assets/seal.png" alt="智勇">
+    <img class="logo" src="assets/wordmark-white.png" alt="智勇 ZHI YONG">
     <h1>智勇人才班教材</h1>
     <div class="sub" id="coverSub">ZHI YONG ‧ 道學講堂</div>
     <div class="frontrow" id="frontRow"></div>
@@ -213,8 +231,10 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 
 <!-- side panel -->
 <div id="panel">
-  <button class="close" id="panelClose">×</button>
-  <div id="panelBody"></div>
+  <div class="pcard">
+    <button class="close" id="panelClose">×</button>
+    <div id="panelBody"></div>
+  </div>
 </div>
 
 <!-- modal -->
@@ -370,7 +390,7 @@ function renderFront(which){
   if(which==='motto'){
     const m=DATA.frontMatter.motto;
     c.append(el('div','ch-head',`<div class="seal-num">訓</div><h2>${esc(m.title)}</h2>`));
-    m.lines.forEach(l=>c.append(el('p','unit prose',esc(l))));
+    m.lines.forEach(l=>c.append(el('p','motto-line',esc(l))));
   }else{
     const pf=DATA.frontMatter.preface;
     c.append(el('div','ch-head',`<div class="seal-num">序</div><h2>${esc(pf.title)}</h2>`));
@@ -584,6 +604,12 @@ $('#sbToggle').onclick=()=>{
   if(window.innerWidth<=760) $('#sidebar').classList.toggle('open');
   else $('#reader').classList.toggle('nav-collapsed');
 };
+$('#presentBtn').onclick=()=>{
+  const on=document.body.classList.toggle('present-mode');
+  $('#presentBtn').classList.toggle('on',on);
+  $('#reader').classList.toggle('nav-collapsed',on);
+};
+$('#panel').onclick=e=>{if(e.target.id==='panel')$('#panel').classList.remove('open');};
 document.addEventListener('click',e=>{
   if(window.innerWidth<=760 && e.target.closest('.sb-secs a, .sb-ch>a')) $('#sidebar').classList.remove('open');
 });
