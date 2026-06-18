@@ -199,7 +199,35 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 .btn-save{background:var(--cinnabar);color:#fff}
 .muted{color:var(--ink-soft);font-size:.85rem}
 
+/* ---------- block editor ---------- */
+.edit-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:1rem;
+  background:#2b2724;color:#f4ecda;padding:.6rem 1rem;border-radius:8px;margin-bottom:1.2rem;flex-wrap:wrap}
+.edit-toolbar .et-hint{font-size:.9rem;color:#d8cba8}
+.edit-toolbar .et-export{margin-left:auto;border:0;background:#fff;color:#2b2724;border-radius:7px;padding:.4rem .9rem;font-weight:600;cursor:pointer}
+.eblock{border:1px solid var(--line);border-radius:9px;background:#fff;margin:.5rem 0;padding:.5rem .7rem;position:relative}
+.eblock.dragging{opacity:.4}
+.eblock.drop-before{box-shadow:0 -3px 0 var(--cinnabar)}
+.eblock.drop-after{box-shadow:0 3px 0 var(--cinnabar)}
+.eb-bar{display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem}
+.eb-drag{cursor:grab;color:#aaa;font-weight:700;letter-spacing:-2px;padding:0 .3rem;user-select:none}
+.eb-drag:active{cursor:grabbing}
+.eb-level{border:1px solid var(--line);border-radius:6px;padding:.2rem .4rem;font-family:inherit;font-size:.85rem;background:#fff8ec}
+.eb-btn{border:1px solid var(--line);background:#fff8ec;border-radius:6px;padding:.22rem .55rem;font-size:.82rem;cursor:pointer;color:var(--ink)}
+.eb-btn:hover{background:var(--paper-deep)}
+.eb-del{color:#a23;border-color:#e7c3bd}
+.eb-text{font-size:1.05rem;line-height:1.85;white-space:normal;padding:.1rem .2rem;cursor:text}
+.eb-empty{color:#bbb}
+.eb-edit{width:100%;border:1px solid var(--jade);border-radius:6px;padding:.5rem;font-family:inherit;
+  font-size:1.05rem;line-height:1.85;resize:none;background:#fffdf7;min-height:2.4em}
+.eblock.lv-ch{background:#fcf0e8;border-color:#e8c4ad}
+.eblock.lv-ch .eb-text{font-size:1.35rem;font-weight:600;color:var(--cinnabar)}
+.eblock.lv-sec{background:#fdf6e3}
+.eblock.lv-sec .eb-text{font-size:1.15rem;font-weight:600}
+.eblock.lv-quote{border-left:4px solid var(--jade)}
+.eblock.lv-quote .eb-text{color:#4a443c}
+
 @media(max-width:760px){
+  #modeToggle{display:none}   /* 手機僅供瀏覽，不開放編輯 */
   #reader{grid-template-columns:1fr}
   #sidebar{position:fixed;left:0;top:52px;bottom:0;width:78%;z-index:40;transform:translateX(-100%);
     transition:.25s;max-height:none}
@@ -266,7 +294,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, onValue, push, update, remove }
+import { getDatabase, ref, onValue, push, update, remove, set }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 /* ============================================================
    CONFIG  —  Firebase 專案 zhiyong（Realtime Database，新加坡節點）。
@@ -329,14 +357,18 @@ $('#fsRange').oninput=e=>{fsVal=+e.target.value;applyFs();};
 
 /* ---------- mode ---------- */
 function setMode(on){
+  if(on && isMobile()){alert('編輯模式請在電腦上使用，手機僅供瀏覽。');return;}
   editMode=on;
   $('#btnBrowse').classList.toggle('seg-on',!on);
   $('#btnEdit').classList.toggle('seg-on',on);
-  if(!on) hideSelBtn();
+  document.body.classList.toggle('edit-mode',on);
+  if(on){showReader();renderEditList();}
+  else{hideSelBtn();route();}
 }
 $('#btnEdit').onclick=()=>{
   if(editMode)return;
-  if(!FIREBASE_ON){alert('雲端尚未設定，編輯功能將於填入 Firebase 設定後啟用。');return;}
+  if(isMobile()){alert('編輯模式請在電腦上使用，手機僅供瀏覽。');return;}
+  if(!FIREBASE_ON){alert('雲端尚未設定。');return;}
   const p=prompt('請輸入講者密碼以進入編輯模式：');
   if(p===null)return;
   if(p===EDITOR_PASSWORD){sessionStorage.setItem('zy_edit','1');setMode(true);}
@@ -345,15 +377,51 @@ $('#btnEdit').onclick=()=>{
 $('#btnBrowse').onclick=()=>{ if(editMode){sessionStorage.removeItem('zy_edit');setMode(false);} };
 if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON){/* will enable after load */}
 
-/* ---------- load content ---------- */
+/* ---------- cloud content (blocks) ---------- */
+let BLOCKS={};            // key -> {order, level, text}
+let booted=false;
+const isMobile=()=>window.innerWidth<=760;
+let dragKey=null;
+
+function sortedBlocks(){
+  return Object.entries(BLOCKS).map(([key,b])=>({key,...b})).sort((a,b)=>(a.order||0)-(b.order||0));
+}
+function deriveData(){
+  const chapters=[]; let ch=null,sec=null;
+  for(const b of sortedBlocks()){
+    if(b.level==='章'){ch={id:b.key,title:b.text,sections:[]};chapters.push(ch);sec=null;}
+    else if(b.level==='節'){if(!ch){ch={id:'_pre',title:'',sections:[]};chapters.push(ch);}sec={id:b.key,title:b.text,units:[]};ch.sections.push(sec);}
+    else{if(!ch){ch={id:'_pre',title:'',sections:[]};chapters.push(ch);}if(!sec){sec={id:ch.id+'_s',title:'',units:[]};ch.sections.push(sec);}
+      sec.units.push({id:b.key,text:b.text,kind:b.level==='引用'?'quote':'prose'});}
+  }
+  DATA.chapters=chapters;
+}
+function onContentChange(){
+  deriveData(); buildCover(); buildSidebar();
+  if(!booted){
+    booted=true;
+    window.addEventListener('hashchange',()=>{ if(!editMode) route(); });
+    if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON && !isMobile()) setMode(true);
+    else route();
+  }else if(editMode){
+    // don't disturb active typing; refresh editor only when idle
+    if(!document.activeElement || !document.activeElement.closest('.eblock')) renderEditList();
+  }else route();
+}
+
 async function boot(){
   applyFs();
-  DATA=await fetch('content.json').then(r=>r.json());
+  const seed=await fetch('content.json').then(r=>r.json()).catch(()=>({}));
+  DATA={title:seed.title||'智勇人才班教材',subtitle:seed.subtitle||'',frontMatter:seed.frontMatter||{motto:{title:'樞紐四訓',lines:[]},preface:{title:'序文',text:'',sign:''}},chapters:[]};
   $('#coverSub').textContent=DATA.subtitle||'';
-  buildCover(); buildSidebar();
-  if(FIREBASE_ON) listenAnnotations();
-  if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON) setMode(true);
-  window.addEventListener('hashchange',route); route();
+  if(FIREBASE_ON){
+    onValue(ref(db,'content/frontMatter'),s=>{ if(s.val()) DATA.frontMatter=s.val(); });
+    onValue(ref(db,'content/blocks'),s=>{ BLOCKS=s.val()||{}; onContentChange(); });
+    listenAnnotations();
+  }else{
+    BLOCKS={}; (seed.chapters||[]).forEach(()=>{}); DATA.chapters=seed.chapters||[];
+    buildCover(); buildSidebar(); window.addEventListener('hashchange',route); route();
+  }
 }
 
 /* ---------- cover ---------- */
@@ -509,7 +577,8 @@ document.addEventListener('mouseup',e=>{
 selBtn.onclick=()=>{ if(pendingSel){editingKey=null;openModal(pendingSel);} };
 
 function unitText(rowId){
-  if(rowId==='front-preface')return DATA.frontMatter.preface.text;
+  if(rowId==='front-preface')return DATA.frontMatter?.preface?.text||'';
+  if(BLOCKS[rowId])return BLOCKS[rowId].text;
   for(const ch of DATA.chapters)for(const s of ch.sections)for(const u of s.units)
     if(u.id===rowId)return u.text;
   return '';
@@ -676,6 +745,78 @@ $('#panel').onclick=e=>{if(e.target.id==='panel')$('#panel').classList.remove('o
 document.addEventListener('click',e=>{
   if(window.innerWidth<=760 && e.target.closest('.sb-secs a, .sb-ch>a')) $('#sidebar').classList.remove('open');
 });
+
+/* ============ EDIT MODE: block editor ============ */
+const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote'};
+async function saveBlock(key,patch){Object.assign(BLOCKS[key],patch);patch.updatedAt=Date.now();await update(ref(db,'content/blocks/'+key),patch);}
+async function addBlockAfter(key){
+  const list=sortedBlocks(); const i=list.findIndex(b=>b.key===key);
+  const cur=list[i].order||(i+1)*10; const nxt=list[i+1]?list[i+1].order:cur+20;
+  const order=(cur+nxt)/2;
+  const nk='b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+  await set(ref(db,'content/blocks/'+nk),{order,level:'內文',text:'',updatedAt:Date.now()});
+  setTimeout(()=>{const card=document.querySelector(`.eblock[data-key="${nk}"]`);if(card){card.scrollIntoView({block:'center'});startEdit(card,nk);}},120);
+}
+async function delBlock(key){ if(confirm('確定刪除此區塊？')){delete BLOCKS[key];await remove(ref(db,'content/blocks/'+key));} }
+async function moveBlock(dragK,targetK,after){
+  const list=sortedBlocks().filter(b=>b.key!==dragK);
+  const ti=list.findIndex(b=>b.key===targetK);
+  const prev= after?list[ti]:list[ti-1];
+  const next= after?list[ti+1]:list[ti];
+  const po=prev?prev.order:(next.order-20);
+  const no=next?next.order:(prev.order+20);
+  const order=(po+no)/2;
+  await saveBlock(dragK,{order});
+}
+
+function renderEditList(){
+  showReader();
+  $('#reader').classList.add('nav-collapsed');
+  const c=$('#content'); c.innerHTML='';
+  const bar=el('div','edit-toolbar');
+  bar.innerHTML=`<span class="et-hint">編輯模式 · 拖曳 ⋮⋮ 排序 · 點文字編輯 · 選取文字可加註解</span>`;
+  const exp=el('button','et-export','⬇ 匯出備份'); exp.onclick=exportContent; bar.append(exp);
+  c.append(bar);
+  sortedBlocks().forEach(b=>c.append(blockCard(b)));
+  window.scrollTo(0,0);
+}
+function blockCard(b){
+  const card=el('div','eblock lv-'+(LV_CLASS[b.level]||'prose')); card.dataset.key=b.key;
+  const bar=el('div','eb-bar');
+  const dh=el('span','eb-drag','⋮⋮'); dh.draggable=true; dh.title='拖曳排序';
+  const sel=el('select','eb-level');
+  ['章','節','內文','引用'].forEach(l=>{const o=el('option',null,l);o.value=l;if(l===b.level)o.selected=true;sel.append(o);});
+  sel.onchange=()=>saveBlock(b.key,{level:sel.value}).then(()=>{card.className='eblock lv-'+(LV_CLASS[sel.value]||'prose');});
+  const edit=el('button','eb-btn','✎ 改字'); edit.onclick=()=>startEdit(card,b.key);
+  const add=el('button','eb-btn','＋下方'); add.onclick=()=>addBlockAfter(b.key);
+  const del=el('button','eb-btn eb-del','刪'); del.onclick=()=>delBlock(b.key);
+  bar.append(dh,sel,edit,add,del);
+  const tx=el('div','eb-text'); tx.dataset.unit=b.key; tx.innerHTML=renderText(b.key,b.text)||'<span class="eb-empty">（空白，點「改字」輸入）</span>';
+  card.append(bar,tx);
+  dh.addEventListener('dragstart',e=>{dragKey=b.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text','');});
+  dh.addEventListener('dragend',()=>card.classList.remove('dragging'));
+  card.addEventListener('dragover',e=>{if(!dragKey||dragKey===b.key)return;e.preventDefault();
+    const after=e.offsetY>card.offsetHeight/2; card.classList.toggle('drop-after',after); card.classList.toggle('drop-before',!after);});
+  card.addEventListener('dragleave',()=>card.classList.remove('drop-after','drop-before'));
+  card.addEventListener('drop',e=>{e.preventDefault();const after=card.classList.contains('drop-after');card.classList.remove('drop-after','drop-before');
+    if(dragKey&&dragKey!==b.key)moveBlock(dragKey,b.key,after);dragKey=null;});
+  return card;
+}
+function startEdit(card,key){
+  const tx=card.querySelector('.eb-text'); if(tx.querySelector('textarea'))return;
+  const cur=BLOCKS[key].text||'';
+  const ta=el('textarea','eb-edit'); ta.value=cur; tx.innerHTML=''; tx.append(ta);
+  const grow=()=>{ta.style.height='auto';ta.style.height=(ta.scrollHeight+4)+'px';};
+  ta.focus(); grow(); ta.oninput=grow;
+  ta.onblur=async()=>{ const v=ta.value; if(v!==cur) await saveBlock(key,{text:v});
+    tx.innerHTML=renderText(key,v)||'<span class="eb-empty">（空白，點「改字」輸入）</span>'; };
+}
+function exportContent(){
+  const data={title:DATA.title,subtitle:DATA.subtitle,frontMatter:DATA.frontMatter,blocks:BLOCKS,exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='智勇教材備份_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
 
 boot();
 </script>
