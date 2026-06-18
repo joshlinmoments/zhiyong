@@ -403,10 +403,8 @@ function onContentChange(){
     window.addEventListener('hashchange',()=>{ if(!editMode) route(); });
     if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON && !isMobile()) setMode(true);
     else route();
-  }else if(editMode){
-    // don't disturb active typing; refresh editor only when idle
-    if(!document.activeElement || !document.activeElement.closest('.eblock')) renderEditList();
-  }else route();
+  }else if(editMode){ syncEditList(); }
+  else route();
 }
 
 async function boot(){
@@ -748,16 +746,22 @@ document.addEventListener('click',e=>{
 
 /* ============ EDIT MODE: block editor ============ */
 const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote'};
+let pendingEditKey=null;
 async function saveBlock(key,patch){Object.assign(BLOCKS[key],patch);patch.updatedAt=Date.now();await update(ref(db,'content/blocks/'+key),patch);}
 async function addBlockAfter(key){
   const list=sortedBlocks(); const i=list.findIndex(b=>b.key===key);
   const cur=list[i].order||(i+1)*10; const nxt=list[i+1]?list[i+1].order:cur+20;
   const order=(cur+nxt)/2;
   const nk='b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
-  await set(ref(db,'content/blocks/'+nk),{order,level:'內文',text:'',updatedAt:Date.now()});
-  setTimeout(()=>{const card=document.querySelector(`.eblock[data-key="${nk}"]`);if(card){card.scrollIntoView({block:'center'});startEdit(card,nk);}},120);
+  const rec={order,level:'內文',text:'',updatedAt:Date.now()};
+  BLOCKS[nk]=rec; pendingEditKey=nk; syncEditList();          // instant
+  await set(ref(db,'content/blocks/'+nk),rec);
 }
-async function delBlock(key){ if(confirm('確定刪除此區塊？')){delete BLOCKS[key];await remove(ref(db,'content/blocks/'+key));} }
+async function delBlock(key){
+  if(!confirm('確定刪除此區塊？'))return;
+  delete BLOCKS[key]; syncEditList();                          // instant
+  await remove(ref(db,'content/blocks/'+key));
+}
 async function moveBlock(dragK,targetK,after){
   const list=sortedBlocks().filter(b=>b.key!==dragK);
   const ti=list.findIndex(b=>b.key===targetK);
@@ -766,7 +770,41 @@ async function moveBlock(dragK,targetK,after){
   const po=prev?prev.order:(next.order-20);
   const no=next?next.order:(prev.order+20);
   const order=(po+no)/2;
-  await saveBlock(dragK,{order});
+  BLOCKS[dragK].order=order; syncEditList();                  // instant
+  await update(ref(db,'content/blocks/'+dragK),{order,updatedAt:Date.now()});
+}
+
+/* in-place reconcile: update only what changed, keep scroll + focus */
+function syncEditList(){
+  const c=$('#content');
+  const toolbar=c.querySelector('.edit-toolbar');
+  if(!toolbar){ renderEditList(); return; }
+  const existing={}; c.querySelectorAll('.eblock').forEach(card=>existing[card.dataset.key]=card);
+  let prev=toolbar;
+  for(const b of sortedBlocks()){
+    let card=existing[b.key];
+    if(card){ delete existing[b.key]; updateCard(card,b); }
+    else{
+      card=blockCard(b);
+      if(b.key===pendingEditKey){ pendingEditKey=null; setTimeout(()=>{
+        const r=card.getBoundingClientRect();
+        if(r.top<60||r.bottom>window.innerHeight) card.scrollIntoView({block:'center'});
+        startEdit(card,b.key);
+      },0); }
+    }
+    if(prev.nextSibling!==card) c.insertBefore(card,prev.nextSibling);
+    prev=card;
+  }
+  Object.values(existing).forEach(card=>card.remove());
+}
+function updateCard(card,b){
+  const sel=card.querySelector('.eb-level');
+  if(sel && sel.value!==b.level){ sel.value=b.level; card.className='eblock lv-'+(LV_CLASS[b.level]||'prose'); }
+  const tx=card.querySelector('.eb-text');
+  if(tx && !tx.querySelector('textarea')){
+    const html=renderText(b.key,b.text)||'<span class="eb-empty">（空白，點「改字」輸入）</span>';
+    if(tx.innerHTML!==html) tx.innerHTML=html;
+  }
 }
 
 function renderEditList(){
