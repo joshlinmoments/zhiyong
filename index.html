@@ -30,39 +30,47 @@ body{
 /* fixed ink-wash backdrop — a faint hint so white stays dominant */
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:url("assets/cover-bg.jpg") center bottom / cover no-repeat;opacity:.10}
-.brush{font-family:"Noto Serif TC",serif;font-weight:900}
+.brush{font-family:"Noto Serif TC",serif;font-weight:600}
 .hidden{display:none!important}
 button{font-family:inherit;cursor:pointer}
 a{color:var(--jade-dark)}
 
 /* ---------- top bar ---------- */
-.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6rem;
-  padding:.5rem .9rem;background:linear-gradient(180deg,#CBA968,#C19E5B);backdrop-filter:blur(6px);
-  border-bottom:1px solid #A8843E}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.55rem;
+  padding:0 .9rem;height:52px;background:#1c1c1c;border-bottom:1px solid #000;color:#fff}
 body.on-cover .topbar{display:none}
-.topbar .home{font-family:"Noto Serif TC",serif;font-weight:900;font-size:1.4rem;color:var(--cinnabar);
-  text-decoration:none;display:flex;align-items:center;gap:.4rem}
+.topbar .home{font-family:"Noto Serif TC",serif;font-weight:600;font-size:1.25rem;color:#fff;
+  text-decoration:none;display:flex;align-items:center;gap:.45rem}
 .topbar .spacer{flex:1}
-.seal-img{width:32px;height:32px;object-fit:contain;display:block}
+.seal-img{width:30px;height:30px;object-fit:contain;display:block;background:#fff;border-radius:5px;padding:1px}
 
-/* font-size control (slider) */
-.fsctl{display:flex;align-items:center;gap:.5rem;border:1px solid var(--line);border-radius:999px;background:#fff8ec;padding:.3rem .85rem}
-.fsctl .a-end{color:var(--ink-soft);font-weight:700;line-height:1;font-family:"Noto Serif TC",serif}
-.fsctl .a-sm{font-size:.8rem}.fsctl .a-lg{font-size:1.3rem}
-.fsctl input[type=range]{-webkit-appearance:none;appearance:none;width:108px;height:5px;border-radius:3px;
-  background:linear-gradient(90deg,var(--jade),var(--ochre));outline:none;cursor:pointer}
-.fsctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
-  background:var(--cinnabar);border:2px solid #fff8ec;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer}
-.fsctl input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
-  background:var(--cinnabar);border:2px solid #fff8ec;cursor:pointer}
+/* uniform control sizing on the bar */
+.topbar .tb-icon,.topbar .fsctl,.topbar .seg-toggle,.topbar .present-cta{
+  height:34px;display:flex;align-items:center;font-size:.9rem}
+.tb-icon{background:transparent;border:0;padding:0 .4rem;cursor:pointer}
+.tb-icon svg line{stroke:#fff;stroke-width:1.7;stroke-linecap:round}
+.tb-icon:hover svg line{stroke:#999}
 
-/* mode toggle */
-.mode{display:flex;align-items:center;gap:.45rem;border:1px solid var(--line);
-  border-radius:999px;padding:.25rem .55rem;background:#fff8ec;font-size:.9rem}
-.mode .dot{width:10px;height:10px;border-radius:50%;background:var(--jade)}
-.mode.edit .dot{background:var(--cinnabar)}
-.mode button{border:0;background:var(--jade);color:#fff;border-radius:999px;padding:.3rem .8rem;font-size:.85rem}
-.mode.edit button{background:var(--cinnabar)}
+/* font-size control (slider + number) */
+.fsctl{gap:.55rem;border:1px solid #3a3a3a;border-radius:8px;background:#2a2a2a;padding:0 .75rem}
+.fsctl .fs-ico{color:#9a9a9a;font-size:.8rem}
+.fsctl .fs-num{color:#fff;font-size:.85rem;min-width:3rem;text-align:right;font-variant-numeric:tabular-nums}
+.fsctl input[type=range]{-webkit-appearance:none;appearance:none;width:100px;height:4px;border-radius:3px;
+  background:#555;outline:none;cursor:pointer}
+.fsctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:#fff;cursor:pointer}
+.fsctl input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:0;cursor:pointer}
+
+/* browse / edit segmented toggle */
+.seg-toggle{border:1px solid #3a3a3a;border-radius:8px;overflow:hidden;background:#2a2a2a}
+.seg-toggle button{border:0;background:transparent;color:#9a9a9a;height:100%;padding:0 .9rem;font-size:.9rem;cursor:pointer}
+.seg-toggle button.seg-on{background:#fff;color:#1c1c1c;font-weight:600}
+
+/* present / 展示 — most prominent, far right */
+.present-cta{border:0;border-radius:8px;background:#fff;color:#1c1c1c;font-weight:700;
+  padding:0 1.25rem;cursor:pointer;margin-left:.15rem;letter-spacing:.08em}
+.present-cta:hover{background:#e9e9e9}
+.present-cta.on{background:var(--cinnabar);color:#fff}
 
 /* ---------- cover ---------- */
 #cover{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -103,7 +111,7 @@ body.on-cover .topbar{display:none}
 #reader.nav-collapsed #sidebar{display:none}
 #sidebar{border-right:1px solid var(--line);background:rgba(250,249,245,.72);
   padding:1rem .6rem 3rem;position:sticky;top:50px;align-self:start;max-height:calc(100vh - 50px);overflow:auto}
-#sidebar .sb-home{display:block;font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);
+#sidebar .sb-home{display:block;font-family:"Noto Serif TC",serif;font-weight:600;color:var(--cinnabar);
   font-size:1.2rem;text-decoration:none;margin:.2rem .4rem 1rem}
 .sb-ch{margin-bottom:.15rem}
 .sb-ch>a{display:block;padding:.45rem .55rem;border-radius:7px;text-decoration:none;color:var(--ink);font-weight:500}
@@ -119,18 +127,18 @@ body.on-cover .topbar{display:none}
 .present-btn.on{background:var(--cinnabar);color:#fff;border-color:var(--cinnabar)}
 body.present-mode #content{max-width:none;padding:2.2rem clamp(1.5rem,4vw,5rem) 5rem}
 .ch-head{text-align:center;margin:1rem 0 2.4rem}
-.ch-head .seal-num{font-family:"Noto Serif TC",serif;font-weight:900;font-size:2rem;color:var(--cinnabar)}
-.ch-head h2{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(2rem,5vw,3rem);letter-spacing:.3rem;margin-top:.3rem}
+.ch-head .seal-num{font-family:"Noto Serif TC",serif;font-weight:600;font-size:2rem;color:var(--cinnabar)}
+.ch-head h2{font-family:"Noto Serif TC",serif;font-weight:600;font-size:clamp(2rem,5vw,3rem);letter-spacing:.3rem;margin-top:.3rem}
 .sec-head{display:flex;align-items:center;gap:.8rem;margin:2.4rem 0 1.1rem}
 .sec-head .bar{width:6px;height:1.5em;background:var(--cinnabar);border-radius:3px}
-.sec-head h3{font-size:calc(1.45rem * var(--reading-scale));font-weight:700;letter-spacing:.1rem}
+.sec-head h3{font-size:calc(1.45rem * var(--reading-scale));font-weight:600;letter-spacing:.1rem}
 
 .unit{font-size:calc(1.16rem * var(--reading-scale));margin:1rem 0;text-align:justify}
 .unit.prose{text-indent:2em}
 .unit.quote{position:relative;border-left:3px solid var(--jade);padding:.2rem 0 .2rem 1.3rem;
   text-indent:0;font-size:calc(1.08rem * var(--reading-scale));color:#4a443c}
 
-.motto-line{text-align:center;font-weight:700;letter-spacing:.35rem;
+.motto-line{text-align:center;font-weight:600;letter-spacing:.35rem;
   font-size:calc(1.9rem * var(--reading-scale));margin:1.1rem 0;color:var(--ink)}
 
 mark.anno{background:rgba(178,58,46,.16);border-bottom:2px solid var(--cinnabar);
@@ -148,7 +156,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 #panel .pcard{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:14px;
   width:96vw;max-width:1180px;height:92vh;overflow:auto;padding:2.4rem clamp(1.4rem,4vw,3.2rem) 2.6rem;
   box-shadow:0 20px 60px rgba(0,0,0,.45)}
-#panel h4{font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);font-size:1.3rem;margin-bottom:.3rem}
+#panel h4{font-family:"Noto Serif TC",serif;font-weight:600;color:var(--cinnabar);font-size:1.3rem;margin-bottom:.3rem}
 #panel .quote-of{color:var(--ink-soft);border-left:3px solid var(--ochre);padding-left:.7rem;
   margin:.2rem 0 1.2rem;font-size:calc(1.05rem * var(--reading-scale))}
 #panel .note{white-space:pre-wrap;font-size:calc(1.15rem * var(--reading-scale));line-height:1.95;margin-bottom:1.2rem}
@@ -174,7 +182,7 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 #overlay{position:fixed;inset:0;background:rgba(43,39,36,.5);z-index:70;display:none;align-items:center;justify-content:center;padding:1rem}
 #overlay.open{display:flex}
 .modal{background:var(--paper);border-radius:14px;width:min(560px,96vw);max-height:92vh;overflow:auto;padding:1.4rem}
-.modal h3{font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);font-size:1.4rem;margin-bottom:.2rem}
+.modal h3{font-family:"Noto Serif TC",serif;font-weight:600;color:var(--cinnabar);font-size:1.4rem;margin-bottom:.2rem}
 .modal .target{background:rgba(178,58,46,.1);border-radius:8px;padding:.5rem .7rem;margin:.6rem 0 1rem;color:var(--ink)}
 .modal label{display:block;font-weight:700;margin:.9rem 0 .35rem}
 .modal textarea,.modal input[type=text],.modal input[type=url]{width:100%;border:1px solid var(--line);
@@ -206,19 +214,19 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 
 <!-- ===== top bar ===== -->
 <div class="topbar">
-  <button class="sb-toggle" id="sbToggle" aria-label="目錄"><svg viewBox="0 0 22 16" width="22" height="16"><line x1="1" y1="2" x2="21" y2="2"/><line x1="1" y1="8" x2="21" y2="8"/><line x1="1" y1="14" x2="21" y2="14"/></svg></button>
+  <button class="tb-icon" id="sbToggle" aria-label="目錄"><svg viewBox="0 0 22 16" width="22" height="16"><line x1="1" y1="2" x2="21" y2="2"/><line x1="1" y1="8" x2="21" y2="8"/><line x1="1" y1="14" x2="21" y2="14"/></svg></button>
   <a href="#/" class="home"><img class="seal-img" src="assets/seal.png" alt="智勇"><span>智勇人才班教材</span></a>
   <div class="spacer"></div>
   <div class="fsctl" title="拖曳調整字級大小">
-    <span class="a-end a-sm">A</span>
-    <input type="range" id="fsRange" min="90" max="190" step="5" value="100" aria-label="字級大小">
-    <span class="a-end a-lg">A</span>
+    <span class="fs-ico">字級</span>
+    <input type="range" id="fsRange" min="80" max="200" step="5" value="100" aria-label="字級大小">
+    <span class="fs-num" id="fsNum">100%</span>
   </div>
-  <button class="present-btn" id="presentBtn" title="簡報模式（滿版）">簡報</button>
-  <div class="mode" id="modeBox">
-    <span class="dot"></span><span id="modeLabel">瀏覽</span>
-    <button id="modeBtn">切換編輯</button>
+  <div class="seg-toggle" id="modeToggle">
+    <button class="seg-on" id="btnBrowse">瀏覽</button>
+    <button id="btnEdit">編輯</button>
   </div>
+  <button class="present-cta" id="presentBtn">展示</button>
 </div>
 
 <!-- ===== cover ===== -->
@@ -271,7 +279,7 @@ const firebaseConfig = {
   messagingSenderId: "319490692836",
   appId:         "1:319490692836:web:45fc275371675b40ff7ef1"
 };
-const EDITOR_PASSWORD = "zhiyong";          // 講者密碼（之後可改）
+const EDITOR_PASSWORD = "171775";           // 講者密碼
 const FIREBASE_ON = !firebaseConfig.apiKey.startsWith("PASTE");
 
 let db=null;
@@ -311,29 +319,29 @@ const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&qu
 
 /* ---------- font scale (slider) ---------- */
 let fsVal=+(localStorage.getItem('zy_fs2')||100);
-function applyFs(){fsVal=Math.max(90,Math.min(190,fsVal));
+function applyFs(){fsVal=Math.max(80,Math.min(200,fsVal));
   document.documentElement.style.setProperty('--reading-scale',(fsVal/100).toFixed(2));
   const r=$('#fsRange'); if(r) r.value=fsVal;
+  const num=$('#fsNum'); if(num) num.textContent=fsVal+'%';
   localStorage.setItem('zy_fs2',fsVal);}
 $('#fsRange').oninput=e=>{fsVal=+e.target.value;applyFs();};
 
 /* ---------- mode ---------- */
 function setMode(on){
   editMode=on;
-  const box=$('#modeBox');
-  box.classList.toggle('edit',on);
-  $('#modeLabel').textContent=on?'編輯':'瀏覽';
-  $('#modeBtn').textContent=on?'結束編輯':'切換編輯';
+  $('#btnBrowse').classList.toggle('seg-on',!on);
+  $('#btnEdit').classList.toggle('seg-on',on);
   if(!on) hideSelBtn();
 }
-$('#modeBtn').onclick=()=>{
-  if(editMode){setMode(false);return;}
+$('#btnEdit').onclick=()=>{
+  if(editMode)return;
   if(!FIREBASE_ON){alert('雲端尚未設定，編輯功能將於填入 Firebase 設定後啟用。');return;}
   const p=prompt('請輸入講者密碼以進入編輯模式：');
   if(p===null)return;
   if(p===EDITOR_PASSWORD){sessionStorage.setItem('zy_edit','1');setMode(true);}
   else alert('密碼錯誤');
 };
+$('#btnBrowse').onclick=()=>{ if(editMode){sessionStorage.removeItem('zy_edit');setMode(false);} };
 if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON){/* will enable after load */}
 
 /* ---------- load content ---------- */
