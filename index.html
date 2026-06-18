@@ -12,7 +12,7 @@
 <style>
 :root{
   --jade:#6E9C8A; --jade-dark:#4F7A69; --paper:#F4ECDA; --paper-deep:#EADFC6;
-  --ochre:#C8A063; --cinnabar:#B23A2E; --ink:#2B2724; --ink-soft:#5A534B;
+  --ochre:#C8A063; --cinnabar:#DC2B39; --ink:#2B2724; --ink-soft:#5A534B;
   --reading-scale:1;
   --line:#d8cba8;
 }
@@ -22,8 +22,9 @@ body{
   font-family:"Noto Serif TC",serif; color:var(--ink);
   background:var(--paper);
   background-image:
-    radial-gradient(circle at 20% 10%, rgba(110,156,138,.10), transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(200,160,99,.10), transparent 45%);
+    linear-gradient(rgba(244,236,218,.86), rgba(244,236,218,.86)),
+    url("assets/paper-texture.jpg");
+  background-size:auto, 760px;
   line-height:1.95;
 }
 .brush{font-family:"Noto Serif TC",serif;font-weight:900}
@@ -40,12 +41,16 @@ a{color:var(--jade-dark)}
 .topbar .spacer{flex:1}
 .seal-img{width:32px;height:32px;object-fit:contain;display:block}
 
-/* font-size control */
-.fsctl{display:flex;align-items:center;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff8ec}
-.fsctl button{border:0;background:transparent;color:var(--ink);padding:.35rem .7rem;font-weight:700}
-.fsctl button:hover{background:var(--paper-deep)}
-.fsctl .a-sm{font-size:.85rem}.fsctl .a-md{font-size:1rem}.fsctl .a-lg{font-size:1.2rem}
-.fsctl .lvl{min-width:2.4rem;text-align:center;font-size:.78rem;color:var(--ink-soft)}
+/* font-size control (slider) */
+.fsctl{display:flex;align-items:center;gap:.5rem;border:1px solid var(--line);border-radius:999px;background:#fff8ec;padding:.3rem .85rem}
+.fsctl .a-end{color:var(--ink-soft);font-weight:700;line-height:1;font-family:"Noto Serif TC",serif}
+.fsctl .a-sm{font-size:.8rem}.fsctl .a-lg{font-size:1.3rem}
+.fsctl input[type=range]{-webkit-appearance:none;appearance:none;width:108px;height:5px;border-radius:3px;
+  background:linear-gradient(90deg,var(--jade),var(--ochre));outline:none;cursor:pointer}
+.fsctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--cinnabar);border:2px solid #fff8ec;box-shadow:0 1px 3px rgba(0,0,0,.3);cursor:pointer}
+.fsctl input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
+  background:var(--cinnabar);border:2px solid #fff8ec;cursor:pointer}
 
 /* mode toggle */
 .mode{display:flex;align-items:center;gap:.45rem;border:1px solid var(--line);
@@ -58,9 +63,11 @@ a{color:var(--jade-dark)}
 /* ---------- cover ---------- */
 #cover{min-height:calc(100vh - 0px);display:flex;flex-direction:column;align-items:center;
   padding:3rem 1.2rem 4rem;text-align:center;position:relative;overflow:hidden}
-#cover .scroll-bg{position:absolute;inset:0;z-index:0;opacity:.10;
-  background:linear-gradient(180deg,transparent,rgba(79,122,105,.25)),
-  repeating-linear-gradient(90deg,transparent 0 38px,rgba(43,39,36,.05) 38px 39px)}
+#cover .scroll-bg{position:absolute;inset:0;z-index:0;
+  background:url("assets/cover-bg.jpg") center bottom / cover no-repeat;
+  opacity:.55;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.5) 30%,#000 70%);
+  mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.5) 30%,#000 70%)}
 #cover .inner{position:relative;z-index:1;width:100%;max-width:960px}
 #cover .logo{width:160px;max-width:42vw;margin:0 auto 1rem;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
 #cover h1{font-family:"Noto Serif TC",serif;font-weight:900;font-size:clamp(2.6rem,9vw,5rem);letter-spacing:.4rem;
@@ -83,7 +90,9 @@ a{color:var(--jade-dark)}
 .chcard .nm{font-size:1.08rem;font-weight:500}
 
 /* ---------- reader ---------- */
-#reader{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+#reader{display:grid;grid-template-columns:260px 1fr;min-height:100vh;transition:grid-template-columns .2s}
+#reader.nav-collapsed{grid-template-columns:0 1fr}
+#reader.nav-collapsed #sidebar{display:none}
 #sidebar{border-right:1px solid var(--line);background:rgba(234,223,198,.5);
   padding:1rem .6rem 3rem;position:sticky;top:50px;align-self:start;max-height:calc(100vh - 50px);overflow:auto}
 #sidebar .sb-home{display:block;font-family:"Noto Serif TC",serif;font-weight:900;color:var(--cinnabar);
@@ -109,8 +118,6 @@ a{color:var(--jade-dark)}
 .unit.quote{position:relative;background:rgba(110,156,138,.08);border:1px solid var(--jade);
   border-left:5px solid var(--jade);border-radius:8px;padding:1rem 1.2rem;text-indent:0;
   font-size:calc(1.1rem * var(--reading-scale));color:var(--ink)}
-.unit.quote::before{content:"引";position:absolute;top:-12px;left:-12px;width:26px;height:26px;
-  display:grid;place-items:center;background:var(--cinnabar);color:#fff;border-radius:5px;font-size:.85rem}
 
 mark.anno{background:rgba(178,58,46,.16);border-bottom:2px solid var(--cinnabar);
   border-radius:2px;cursor:pointer;padding:0 1px}
@@ -162,7 +169,8 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   #sidebar.open{transform:translateX(0)}
   .sb-toggle{display:inline-block!important}
 }
-.sb-toggle{display:none;border:1px solid var(--line);background:#fff8ec;border-radius:8px;padding:.3rem .6rem}
+.sb-toggle{display:inline-block;border:1px solid var(--line);background:#fff8ec;border-radius:8px;padding:.3rem .65rem;font-size:1.05rem;color:var(--ink-soft)}
+.sb-toggle:hover{background:var(--paper-deep)}
 </style>
 </head>
 <body>
@@ -172,10 +180,10 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   <button class="sb-toggle" id="sbToggle" aria-label="目錄">☰</button>
   <a href="#/" class="home"><img class="seal-img" src="assets/seal.png" alt="智勇"><span>智勇人才班教材</span></a>
   <div class="spacer"></div>
-  <div class="fsctl" title="字級調整">
-    <button class="a-sm" id="fsDown">A−</button>
-    <span class="lvl" id="fsLvl">標準</span>
-    <button class="a-lg" id="fsUp">A＋</button>
+  <div class="fsctl" title="拖曳調整字級大小">
+    <span class="a-end a-sm">A</span>
+    <input type="range" id="fsRange" min="90" max="190" step="5" value="100" aria-label="字級大小">
+    <span class="a-end a-lg">A</span>
   </div>
   <div class="mode" id="modeBox">
     <span class="dot"></span><span id="modeLabel">瀏覽</span>
@@ -269,14 +277,13 @@ const $=s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 
-/* ---------- font scale ---------- */
-const SCALES=[{v:1,n:'標準'},{v:1.18,n:'大'},{v:1.4,n:'特大'},{v:1.65,n:'超大'}];
-let fsIdx=+(localStorage.getItem('zy_fs')||0);
-function applyFs(){fsIdx=Math.max(0,Math.min(SCALES.length-1,fsIdx));
-  document.documentElement.style.setProperty('--reading-scale',SCALES[fsIdx].v);
-  $('#fsLvl').textContent=SCALES[fsIdx].n;localStorage.setItem('zy_fs',fsIdx);}
-$('#fsUp').onclick=()=>{fsIdx++;applyFs();};
-$('#fsDown').onclick=()=>{fsIdx--;applyFs();};
+/* ---------- font scale (slider) ---------- */
+let fsVal=+(localStorage.getItem('zy_fs2')||100);
+function applyFs(){fsVal=Math.max(90,Math.min(190,fsVal));
+  document.documentElement.style.setProperty('--reading-scale',(fsVal/100).toFixed(2));
+  const r=$('#fsRange'); if(r) r.value=fsVal;
+  localStorage.setItem('zy_fs2',fsVal);}
+$('#fsRange').oninput=e=>{fsVal=+e.target.value;applyFs();};
 
 /* ---------- mode ---------- */
 function setMode(on){
@@ -574,7 +581,10 @@ function rerenderVisible(){
 }
 
 /* ---------- misc ---------- */
-$('#sbToggle').onclick=()=>$('#sidebar').classList.toggle('open');
+$('#sbToggle').onclick=()=>{
+  if(window.innerWidth<=760) $('#sidebar').classList.toggle('open');
+  else $('#reader').classList.toggle('nav-collapsed');
+};
 document.addEventListener('click',e=>{
   if(window.innerWidth<=760 && e.target.closest('.sb-secs a, .sb-ch>a')) $('#sidebar').classList.remove('open');
 });
