@@ -12,7 +12,7 @@
 <style>
 :root{
   --jade:#6E9C8A; --jade-dark:#4F7A69; --paper:#F4ECDA; --paper-deep:#EADFC6;
-  --ochre:#C8A063; --cinnabar:#DC2B39; --ink:#2B2724; --ink-soft:#5A534B;
+  --ochre:#C8A063; --gold-deep:#B07F22; --cinnabar:#DC2B39; --ink:#2B2724; --ink-soft:#5A534B;
   --reading-scale:1;
   --line:#d8cba8;
 }
@@ -37,8 +37,8 @@ a{color:var(--jade-dark)}
 
 /* ---------- top bar ---------- */
 .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:.6rem;
-  padding:.5rem .9rem;background:rgba(252,251,248,.94);backdrop-filter:blur(6px);
-  border-bottom:1px solid var(--line)}
+  padding:.5rem .9rem;background:linear-gradient(180deg,#CBA968,#C19E5B);backdrop-filter:blur(6px);
+  border-bottom:1px solid #A8843E}
 body.on-cover .topbar{display:none}
 .topbar .home{font-family:"Noto Serif TC",serif;font-weight:900;font-size:1.4rem;color:var(--cinnabar);
   text-decoration:none;display:flex;align-items:center;gap:.4rem}
@@ -81,7 +81,8 @@ body.on-cover .topbar{display:none}
 .frontrow .fcard{border:1px solid rgba(237,227,204,.22);border-radius:10px;background:rgba(255,255,255,.04);
   padding:.7rem 1.6rem;font-size:1.02rem;color:#EDE3CC;text-decoration:none;
   display:flex;align-items:center;gap:.55rem;transition:.18s}
-.frontrow .fcard:hover{background:rgba(110,156,138,.22);border-color:var(--jade)}
+.frontrow .fcard:hover{background:var(--gold-deep);border-color:var(--gold-deep);color:#fff}
+.frontrow .fcard:hover .mk{color:#fff}
 .frontrow .fcard .mk{color:var(--ochre);font-size:.95rem}
 
 .toc-title{display:flex;align-items:center;gap:1rem;margin:1.6rem 0 1.2rem;color:rgba(237,227,204,.65);
@@ -90,7 +91,8 @@ body.on-cover .topbar{display:none}
 .chaptergrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(244px,1fr));gap:.7rem;text-align:left}
 .chcard{display:flex;align-items:center;gap:.9rem;border:1px solid rgba(237,227,204,.13);border-radius:8px;
   background:rgba(255,255,255,.03);padding:.7rem 1.1rem;text-decoration:none;color:#EDE3CC;transition:.18s}
-.chcard:hover{border-color:var(--ochre);background:rgba(200,160,99,.12)}
+.chcard:hover{border-color:var(--gold-deep);background:var(--gold-deep);color:#fff}
+.chcard:hover .num{color:#fff;border-right-color:rgba(255,255,255,.5)}
 .chcard .num{font-size:.98rem;color:var(--ochre);min-width:2rem;text-align:center;letter-spacing:.04rem;
   border-right:1px solid rgba(237,227,204,.18);padding-right:.75rem}
 .chcard .nm{font-size:1.02rem;font-weight:500;letter-spacing:.02rem}
@@ -151,8 +153,19 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   margin:.2rem 0 1.2rem;font-size:calc(1.05rem * var(--reading-scale))}
 #panel .note{white-space:pre-wrap;font-size:calc(1.15rem * var(--reading-scale));line-height:1.95;margin-bottom:1.2rem}
 #panel img{display:block;max-width:100%;max-height:74vh;margin:1rem auto;border-radius:8px;border:1px solid var(--line)}
+#panel .note-title{font-weight:700;font-size:calc(1.7rem * var(--reading-scale));line-height:1.6}
+#panel .embed{position:relative;width:100%;max-width:960px;margin:1rem auto;aspect-ratio:16/9;
+  border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#000}
+#panel .embed iframe,#panel .embed video{position:absolute;inset:0;width:100%;height:100%;border:0}
+.opt-row{display:flex;gap:.8rem;flex-wrap:wrap;margin:.55rem 0 .2rem}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg .seg-b{border:0;background:#fff8ec;color:var(--ink);padding:.42rem .85rem;font-size:.9rem;cursor:pointer}
+.seg .seg-b.on{background:var(--jade);color:#fff}
+.seg .seg-b+.seg-b{border-left:1px solid var(--line)}
 #panel .lk{display:block;margin:.35rem 0;padding:.5rem .7rem;background:var(--paper);border-radius:7px;text-decoration:none}
-#panel .close{position:absolute;top:.7rem;right:.8rem;border:0;background:transparent;font-size:1.5rem;color:var(--ink-soft)}
+#panel .close{position:fixed;top:1.1rem;right:1.3rem;z-index:6;width:42px;height:42px;border-radius:50%;
+  border:0;background:rgba(43,39,36,.6);color:#fff;font-size:1.6rem;line-height:1;cursor:pointer;display:grid;place-items:center}
+#panel .close:hover{background:rgba(43,39,36,.85)}
 #panel .edit-actions{display:flex;gap:.6rem;margin-top:1rem}
 #panel .edit-actions button{flex:1;border:0;border-radius:8px;padding:.55rem;color:#fff}
 #panel .btn-edit{background:var(--jade)} #panel .btn-del{background:var(--cinnabar)}
@@ -182,17 +195,18 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
   #sidebar{position:fixed;left:0;top:50px;bottom:0;width:78%;z-index:40;transform:translateX(-100%);
     transition:.25s;max-height:none}
   #sidebar.open{transform:translateX(0)}
-  .sb-toggle{display:inline-block!important}
+  .sb-toggle{display:inline-flex!important}
 }
-.sb-toggle{display:inline-block;border:1px solid var(--line);background:#fff8ec;border-radius:8px;padding:.3rem .65rem;font-size:1.05rem;color:var(--ink-soft)}
-.sb-toggle:hover{background:var(--paper-deep)}
+.sb-toggle{display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;padding:.35rem .45rem;cursor:pointer}
+.sb-toggle svg line{stroke:#5a4221;stroke-width:1.7;stroke-linecap:round}
+.sb-toggle:hover svg line{stroke:#3a2a12}
 </style>
 </head>
 <body>
 
 <!-- ===== top bar ===== -->
 <div class="topbar">
-  <button class="sb-toggle" id="sbToggle" aria-label="目錄">☰</button>
+  <button class="sb-toggle" id="sbToggle" aria-label="目錄"><svg viewBox="0 0 22 16" width="22" height="16"><line x1="1" y1="2" x2="21" y2="2"/><line x1="1" y1="8" x2="21" y2="8"/><line x1="1" y1="14" x2="21" y2="14"/></svg></button>
   <a href="#/" class="home"><img class="seal-img" src="assets/seal.png" alt="智勇"><span>智勇人才班教材</span></a>
   <div class="spacer"></div>
   <div class="fsctl" title="拖曳調整字級大小">
@@ -230,8 +244,8 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 
 <!-- side panel -->
 <div id="panel">
+  <button class="close" id="panelClose">×</button>
   <div class="pcard">
-    <button class="close" id="panelClose">×</button>
     <div id="panelBody"></div>
   </div>
 </div>
@@ -501,11 +515,23 @@ document.addEventListener('click',e=>{
 });
 
 /* ---------- view panel ---------- */
+function embedHTML(url){
+  url=(url||'').trim(); if(!url) return '';
+  let m=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/);
+  if(m) return `<div class="embed"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen frameborder="0"></iframe></div>`;
+  m=url.match(/vimeo\.com\/(\d+)/);
+  if(m) return `<div class="embed"><iframe src="https://player.vimeo.com/video/${m[1]}" allowfullscreen frameborder="0"></iframe></div>`;
+  if(/\.(mp4|webm|ogg)(\?|#|$)/i.test(url)) return `<div class="embed"><video src="${esc(url)}" controls></video></div>`;
+  return `<a class="lk" href="${esc(url)}" target="_blank" rel="noopener">▶ ${esc(url)}</a>`;
+}
 function openPanel(ann){
   const b=$('#panelBody');
+  const align=ann.noteAlign||'left';
+  const noteCls=ann.noteStyle==='title'?'note note-title':'note';
   let html=`<div class="quote-of">「${esc(ann.selectedText)}」</div>`;
-  if(ann.note) html+=`<div class="note">${esc(ann.note)}</div>`;
+  (ann.videos||[]).forEach(v=>html+=embedHTML(v.url));
   (ann.images||[]).forEach(im=>html+=`<img src="${esc(im.url)}" alt="">`);
+  if(ann.note) html+=`<div class="${noteCls}" style="text-align:${align}">${esc(ann.note)}</div>`;
   (ann.links||[]).forEach(lk=>html+=`<a class="lk" href="${esc(lk.url)}" target="_blank" rel="noopener">🔗 ${esc(lk.label||lk.url)}</a>`);
   b.innerHTML=html; $('#panel').classList.add('open');
 }
@@ -516,19 +542,37 @@ function openModal(sel,ann){
   hideSelBtn();
   let images=ann?JSON.parse(JSON.stringify(ann.images||[])):[];
   let links=ann?JSON.parse(JSON.stringify(ann.links||[])):[];
+  let videos=ann?JSON.parse(JSON.stringify(ann.videos||[])):[];
+  let noteStyle=(ann&&ann.noteStyle)||'body';
+  let noteAlign=(ann&&ann.noteAlign)||'left';
+  const onIf=(a,b)=>a===b?' on':'';
   const m=$('#modal');
   m.innerHTML=`
     <h3>${ann?'編輯註解':'新增註解'}</h3>
     <div class="target">針對：「${esc(sel.text)}」</div>
     <label>敘述</label>
     <textarea id="m-note" placeholder="輸入說明文字…">${ann?esc(ann.note||''):''}</textarea>
-    <label>圖片 <span class="muted">（可上傳或貼網址，多張）</span></label>
+    <div class="opt-row">
+      <div class="seg" id="m-style">
+        <button data-v="body" class="seg-b${onIf(noteStyle,'body')}">一般內文字</button>
+        <button data-v="title" class="seg-b${onIf(noteStyle,'title')}">粗體標題字</button>
+      </div>
+      <div class="seg" id="m-align">
+        <button data-v="left" class="seg-b${onIf(noteAlign,'left')}">置左</button>
+        <button data-v="center" class="seg-b${onIf(noteAlign,'center')}">置中</button>
+        <button data-v="right" class="seg-b${onIf(noteAlign,'right')}">置右</button>
+      </div>
+    </div>
+    <label style="margin-top:1rem">圖片 <span class="muted">（可上傳或貼網址，多張）</span></label>
     <div id="m-imgs"></div>
     <div style="display:flex;gap:.5rem">
       <button class="addbtn" id="m-upload">⬆ 上傳圖片</button>
       <button class="addbtn" id="m-imgurl">＋ 貼圖片網址</button>
       <input type="file" id="m-file" accept="image/*" class="hidden">
     </div>
+    <label style="margin-top:1rem">嵌入影片 <span class="muted">（YouTube / Vimeo / mp4 網址）</span></label>
+    <div id="m-videos"></div>
+    <button class="addbtn" id="m-addvideo">＋ 嵌入影片</button>
     <label style="margin-top:1rem">連結 <span class="muted">（多個）</span></label>
     <div id="m-links"></div>
     <button class="addbtn" id="m-addlink">＋ 新增連結</button>
@@ -549,8 +593,18 @@ function openModal(sel,ann){
     const ins=row.querySelectorAll('input');
     ins[0].oninput=e=>lk.label=e.target.value; ins[1].oninput=e=>lk.url=e.target.value;
     const x=el('button','chip-x','✕');x.onclick=()=>{links.splice(idx,1);drawLinks();};row.append(x);c.append(row);});};
-  drawImgs();drawLinks();
+  const drawVideos=()=>{const c=$('#m-videos');c.innerHTML='';videos.forEach((v,idx)=>{
+    const row=el('div','lkrow');
+    row.innerHTML=`<input type="url" placeholder="https://youtube.com/watch?v=…" value="${esc(v.url||'')}" style="flex:1">`;
+    row.querySelector('input').oninput=e=>v.url=e.target.value;
+    const x=el('button','chip-x','✕');x.onclick=()=>{videos.splice(idx,1);drawVideos();};row.append(x);c.append(row);});};
+  drawImgs();drawLinks();drawVideos();
 
+  m.querySelectorAll('#m-style .seg-b').forEach(btn=>btn.onclick=()=>{noteStyle=btn.dataset.v;
+    m.querySelectorAll('#m-style .seg-b').forEach(b=>b.classList.toggle('on',b===btn));});
+  m.querySelectorAll('#m-align .seg-b').forEach(btn=>btn.onclick=()=>{noteAlign=btn.dataset.v;
+    m.querySelectorAll('#m-align .seg-b').forEach(b=>b.classList.toggle('on',b===btn));});
+  $('#m-addvideo').onclick=()=>{videos.push({url:''});drawVideos();};
   $('#m-addlink').onclick=()=>{links.push({label:'',url:''});drawLinks();};
   $('#m-imgurl').onclick=()=>{const u=prompt('貼上圖片網址：');if(u)images.push({url:u,type:'link'}),drawImgs();};
   $('#m-upload').onclick=()=>$('#m-file').click();
@@ -570,8 +624,9 @@ function openModal(sel,ann){
   $('#m-save').onclick=async()=>{
     const note=$('#m-note').value.trim();
     const cleanLinks=links.filter(l=>l.url&&l.url.trim());
+    const cleanVideos=videos.filter(v=>v.url&&v.url.trim());
     const rec={rowId:sel.rowId,selectedText:sel.text,startOffset:sel.start,endOffset:sel.end,
-      note,images,links:cleanLinks,author:'講者',updatedAt:Date.now()};
+      note,noteStyle,noteAlign,images,videos:cleanVideos,links:cleanLinks,author:'講者',updatedAt:Date.now()};
     try{
       if(editingKey){await update(ref(db,'annotations/'+editingKey),rec);}
       else{rec.createdAt=Date.now();await push(ref(db,'annotations'),rec);}
