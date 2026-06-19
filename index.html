@@ -212,15 +212,18 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 .muted{color:var(--ink-soft);font-size:.85rem}
 
 /* ---------- block editor ---------- */
-.edit-toolbar{position:sticky;top:46px;z-index:5;display:flex;align-items:center;gap:.7rem;
-  background:#2b2724;color:#f4ecda;padding:.6rem 1rem;border-radius:8px;margin-bottom:1.2rem;flex-wrap:wrap}
-.edit-toolbar .et-chap{font-weight:600;font-size:1.05rem;color:#fff;letter-spacing:.02em}
-.edit-toolbar .et-hint{font-size:.85rem;color:#b9ad94}
-.et-nav{display:flex;gap:.4rem;margin-left:auto}
-.et-navbtn{border:1px solid #5a5048;background:#3a342e;color:#f4ecda;border-radius:6px;padding:.32rem .7rem;font-size:.82rem;cursor:pointer}
+/* edit toolbar — fixed single-row bar pinned to the bottom of the screen */
+.edit-toolbar{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;align-items:center;gap:.7rem;
+  background:#2b2724;color:#f4ecda;padding:.55rem clamp(1rem,4vw,2.2rem);flex-wrap:nowrap;
+  box-shadow:0 -4px 18px rgba(0,0,0,.28)}
+.edit-toolbar .et-chap{font-weight:600;font-size:1.02rem;color:#fff;letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.et-nav{display:flex;gap:.4rem;margin-left:auto;flex:none}
+.et-navbtn{border:1px solid #5a5048;background:#3a342e;color:#f4ecda;border-radius:6px;padding:.34rem .8rem;font-size:.84rem;cursor:pointer;white-space:nowrap}
 .et-navbtn:hover:not(:disabled){background:#4a433b}
 .et-navbtn:disabled{opacity:.35;cursor:default}
-.edit-toolbar .et-export{margin-left:.6rem;border:0;background:#fff;color:#2b2724;border-radius:7px;padding:.4rem .9rem;font-weight:600;cursor:pointer}
+.edit-toolbar .et-export{flex:none;border:0;background:#fff;color:#2b2724;border-radius:7px;padding:.4rem .9rem;font-weight:600;cursor:pointer;white-space:nowrap}
+body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bottom bar */
 .eblock{border:1px solid var(--line);border-radius:9px;background:#fff;margin:.5rem 0;padding:.5rem .7rem;position:relative}
 .eblock.dragging{opacity:.4}
 .eblock.drop-before{box-shadow:0 -3px 0 var(--cinnabar)}
@@ -865,8 +868,7 @@ function renderEditList(){
   const cur=chs[idx];
   const c=$('#content'); c.innerHTML='';
   const bar=el('div','edit-toolbar');
-  bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>
-    <span class="et-hint">本章編輯 · 拖曳 ⋮⋮ 排序 · 點 ✎ 改字 · 選取文字可加註解</span>`;
+  bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>`;
   const nav=el('div','et-nav');
   const prev=el('button','et-navbtn','◂ 上一章'); prev.disabled=idx<=0;
   prev.onclick=()=>{ if(idx>0){editChapterId=chs[idx-1].id;renderEditList();} };
