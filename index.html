@@ -145,7 +145,8 @@ body.present-mode #content{max-width:none;padding:2.2rem clamp(1.5rem,4vw,5rem) 
 .ch-head h2{font-family:"Noto Serif TC",serif;font-weight:600;display:block;
   font-size:clamp(2.2rem,5.8vw,3.4rem);letter-spacing:.7rem;
   margin-top:1.5rem;text-indent:.7rem}
-.sec-head{display:flex;align-items:center;margin:2.6rem 0 1.1rem}
+.sec-head{display:flex;align-items:center;margin:4.2rem 0 1.2rem}
+.ch-head + .sec-head{margin-top:2.4rem}   /* first section sits closer to the chapter title */
 .sec-head h3{font-size:calc(1.45rem * var(--reading-scale));font-weight:600;letter-spacing:.1rem}
 
 .unit{font-size:calc(1.16rem * var(--reading-scale));margin:1.7rem 0 .9rem;text-align:justify}
@@ -271,7 +272,7 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 <!-- ===== top bar ===== -->
 <div class="topbar">
   <button class="tb-icon" id="sbToggle" aria-label="目錄"><svg viewBox="0 0 22 16" width="22" height="16"><line x1="1" y1="2" x2="21" y2="2"/><line x1="1" y1="8" x2="21" y2="8"/><line x1="1" y1="14" x2="21" y2="14"/></svg></button>
-  <a href="#/" class="home"><img class="seal-img" src="assets/seal.png" alt="智勇"><span>智勇人才班教材</span></a>
+  <a href="#/" class="home"><img class="seal-img" src="assets/seal.png" alt="智勇"><span id="homeTitle">智勇人才班教材</span></a>
   <div class="spacer"></div>
   <div class="fsctl" title="拖曳調整字級大小">
     <span class="fs-ico">A</span>
@@ -391,7 +392,12 @@ function setMode(on){
   $('#btnBrowse').classList.toggle('seg-on',!on);
   $('#btnEdit').classList.toggle('seg-on',on);
   document.body.classList.toggle('edit-mode',on);
-  if(on){ if(!editChapterId) editChapterId=currentChapterId||null; showReader();renderEditList(); }
+  if(on){
+    let cid=currentChapterId;
+    if(!cid){ const h=location.hash.replace(/^#\//,''); if(h.startsWith('chapter/')) cid=h.split('/')[1].split('#')[0]; }
+    editChapterId=cid||editChapterId||null;
+    showReader();renderEditList();
+  }
   else{hideSelBtn();route();}
 }
 $('#btnEdit').onclick=()=>{
@@ -484,6 +490,7 @@ function markSidebar(){
   const active = editMode ? editChapterId : currentChapterId;
   document.querySelectorAll('.sb-ch').forEach(e=>e.classList.toggle('active',e.dataset.ch===active));
 }
+function setTopTitle(t){ const e=$('#homeTitle'); if(e) e.textContent = t || '智勇人才班教材'; }
 /* edit mode: clicking a chapter/section in the sidebar switches the edited chapter */
 function editHashChange(){
   const h=location.hash.replace(/^#\//,'');
@@ -508,7 +515,7 @@ function route(){
   }
   showCover();
 }
-function showCover(){document.body.classList.add('on-cover');$('#cover').classList.remove('hidden');$('#reader').classList.add('hidden');window.scrollTo(0,0);}
+function showCover(){document.body.classList.add('on-cover');$('#cover').classList.remove('hidden');$('#reader').classList.add('hidden');setTopTitle('智勇人才班教材');window.scrollTo(0,0);}
 function showReader(){document.body.classList.remove('on-cover');$('#cover').classList.add('hidden');$('#reader').classList.remove('hidden');}
 
 /* ---------- render front matter ---------- */
@@ -517,10 +524,12 @@ function renderFront(which){
   const c=$('#content'); c.innerHTML='';
   if(which==='motto'){
     const m=DATA.frontMatter.motto;
+    setTopTitle(m.title);
     c.append(el('div','ch-head',`<div class="seal-num">訓</div><h2>${esc(m.title)}</h2>`));
     m.lines.forEach(l=>c.append(el('p','motto-line',esc(l))));
   }else{
     const pf=DATA.frontMatter.preface;
+    setTopTitle(pf.title);
     c.append(el('div','ch-head',`<div class="seal-num">序</div><h2>${esc(pf.title)}</h2>`));
     const u=el('div','unit quote'); u.dataset.unit='front-preface';
     u.innerHTML=renderText('front-preface',pf.text); c.append(u);
@@ -532,7 +541,7 @@ function renderFront(which){
 /* ---------- render chapter ---------- */
 function renderChapter(id){
   const ch=DATA.chapters.find(c=>c.id===id); if(!ch){showCover();return;}
-  currentChapterId=id; markSidebar();
+  currentChapterId=id; markSidebar(); setTopTitle(ch.title);
   const parts=ch.title.split('、');
   const c=$('#content'); c.innerHTML='';
   c.append(el('div','ch-head',`<div class="seal-num">${esc(parts[0])}</div><h2>${esc(parts.slice(1).join('、'))}</h2>`));
@@ -868,6 +877,7 @@ function renderEditList(){
   markSidebar();
   const idx=chs.findIndex(c=>c.id===editChapterId);
   const cur=chs[idx];
+  setTopTitle(cur?cur.title:'');
   const c=$('#content'); c.innerHTML='';
   const bar=el('div','edit-toolbar');
   bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>`;
@@ -877,7 +887,6 @@ function renderEditList(){
   const next=el('button','et-navbtn','下一章 ▸'); next.disabled=idx>=chs.length-1;
   next.onclick=()=>{ if(idx<chs.length-1){editChapterId=chs[idx+1].id;renderEditList();} };
   nav.append(prev,next); bar.append(nav);
-  const exp=el('button','et-export','⬇ 匯出備份'); exp.onclick=exportContent; bar.append(exp);
   c.append(bar);
   blocksForChapter(editChapterId).forEach(b=>c.append(blockCard(b)));
   window.scrollTo(0,0);
