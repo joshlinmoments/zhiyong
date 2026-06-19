@@ -132,18 +132,16 @@ body.on-cover .topbar{display:none}
 .present-btn:hover{background:var(--paper-deep)}
 .present-btn.on{background:var(--cinnabar);color:#fff;border-color:var(--cinnabar)}
 body.present-mode #content{max-width:none;padding:2.2rem clamp(1.5rem,4vw,5rem) 5rem}
-/* chapter heading — a stamped seal number above a title with gold accent */
-.ch-head{text-align:center;margin:2.4rem 0 3.2rem;padding-top:1.6rem}
+/* chapter heading — a stamped seal number above a spacious title */
+.ch-head{text-align:center;margin:2.6rem 0 3.4rem;padding-top:1.8rem}
 .ch-head .seal-num{font-family:"Noto Serif TC",serif;font-weight:600;
   display:inline-flex;align-items:center;justify-content:center;
-  width:clamp(58px,9vw,78px);height:clamp(58px,9vw,78px);
-  font-size:clamp(1.9rem,4vw,2.5rem);color:#fff;background:var(--cinnabar);
+  width:clamp(64px,9.5vw,86px);height:clamp(64px,9.5vw,86px);
+  font-size:clamp(2.05rem,4.3vw,2.75rem);color:#fff;background:var(--cinnabar);
   border-radius:12px;box-shadow:0 7px 20px rgba(220,43,57,.30);letter-spacing:0}
-.ch-head h2{font-family:"Noto Serif TC",serif;font-weight:600;
-  font-size:clamp(2.1rem,5.6vw,3.2rem);letter-spacing:.36rem;
-  margin-top:1.1rem;text-indent:.36rem;display:inline-block;padding-bottom:.7rem;position:relative}
-.ch-head h2::after{content:"";display:block;width:66px;height:3px;background:var(--gold-deep);
-  margin:.85rem auto 0;border-radius:2px}
+.ch-head h2{font-family:"Noto Serif TC",serif;font-weight:600;display:block;
+  font-size:clamp(2.2rem,5.8vw,3.4rem);letter-spacing:.7rem;
+  margin-top:1.5rem;text-indent:.7rem}
 .sec-head{display:flex;align-items:center;gap:.8rem;margin:2.6rem 0 1.1rem}
 .sec-head .bar{width:5px;height:1.8em;background:var(--cinnabar);border-radius:0}
 .sec-head h3{font-size:calc(1.45rem * var(--reading-scale));font-weight:600;letter-spacing:.1rem}
@@ -214,10 +212,15 @@ mark.anno:hover{background:rgba(178,58,46,.28)}
 .muted{color:var(--ink-soft);font-size:.85rem}
 
 /* ---------- block editor ---------- */
-.edit-toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:1rem;
+.edit-toolbar{position:sticky;top:46px;z-index:5;display:flex;align-items:center;gap:.7rem;
   background:#2b2724;color:#f4ecda;padding:.6rem 1rem;border-radius:8px;margin-bottom:1.2rem;flex-wrap:wrap}
-.edit-toolbar .et-hint{font-size:.9rem;color:#d8cba8}
-.edit-toolbar .et-export{margin-left:auto;border:0;background:#fff;color:#2b2724;border-radius:7px;padding:.4rem .9rem;font-weight:600;cursor:pointer}
+.edit-toolbar .et-chap{font-weight:600;font-size:1.05rem;color:#fff;letter-spacing:.02em}
+.edit-toolbar .et-hint{font-size:.85rem;color:#b9ad94}
+.et-nav{display:flex;gap:.4rem;margin-left:auto}
+.et-navbtn{border:1px solid #5a5048;background:#3a342e;color:#f4ecda;border-radius:6px;padding:.32rem .7rem;font-size:.82rem;cursor:pointer}
+.et-navbtn:hover:not(:disabled){background:#4a433b}
+.et-navbtn:disabled{opacity:.35;cursor:default}
+.edit-toolbar .et-export{margin-left:.6rem;border:0;background:#fff;color:#2b2724;border-radius:7px;padding:.4rem .9rem;font-weight:600;cursor:pointer}
 .eblock{border:1px solid var(--line);border-radius:9px;background:#fff;margin:.5rem 0;padding:.5rem .7rem;position:relative}
 .eblock.dragging{opacity:.4}
 .eblock.drop-before{box-shadow:0 -3px 0 var(--cinnabar)}
@@ -359,6 +362,7 @@ let annByRow={};            // rowId -> [annotation,...]
 let annAll={};              // pushId -> annotation (with _key)
 let editMode=false;
 let currentChapterId=null;
+let editChapterId=null;     // which chapter is open in edit mode
 let pendingSel=null;        // {rowId,start,end,text}
 let editingKey=null;        // when editing existing annotation
 
@@ -382,7 +386,7 @@ function setMode(on){
   $('#btnBrowse').classList.toggle('seg-on',!on);
   $('#btnEdit').classList.toggle('seg-on',on);
   document.body.classList.toggle('edit-mode',on);
-  if(on){showReader();renderEditList();}
+  if(on){ if(!editChapterId) editChapterId=currentChapterId||null; showReader();renderEditList(); }
   else{hideSelBtn();route();}
 }
 $('#btnEdit').onclick=()=>{
@@ -420,7 +424,7 @@ function onContentChange(){
   deriveData(); buildCover(); buildSidebar();
   if(!booted){
     booted=true;
-    window.addEventListener('hashchange',()=>{ if(!editMode) route(); });
+    window.addEventListener('hashchange',()=>{ if(editMode) editHashChange(); else route(); });
     if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON && !isMobile()) setMode(true);
     else route();
   }else if(editMode){ syncEditList(); }
@@ -472,7 +476,18 @@ function buildSidebar(){
   });
 }
 function markSidebar(){
-  document.querySelectorAll('.sb-ch').forEach(e=>e.classList.toggle('active',e.dataset.ch===currentChapterId));
+  const active = editMode ? editChapterId : currentChapterId;
+  document.querySelectorAll('.sb-ch').forEach(e=>e.classList.toggle('active',e.dataset.ch===active));
+}
+/* edit mode: clicking a chapter/section in the sidebar switches the edited chapter */
+function editHashChange(){
+  const h=location.hash.replace(/^#\//,'');
+  if(h.startsWith('chapter/')){
+    const id=h.split('/')[1].split('#')[0];
+    if(id!==editChapterId){ editChapterId=id; renderEditList(); }
+    const anchor=location.hash.split('#')[2];
+    if(anchor){ const t=document.querySelector(`.eblock[data-key="${anchor}"]`); if(t)t.scrollIntoView({block:'center'}); }
+  }
 }
 
 /* ---------- routing ---------- */
@@ -770,6 +785,16 @@ document.addEventListener('click',e=>{
 /* ============ EDIT MODE: block editor ============ */
 const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote'};
 let pendingEditKey=null;
+/* chapter scoping — edit one chapter at a time */
+function chapterList(){return sortedBlocks().filter(b=>b.level==='章').map(b=>({id:b.key,title:b.text}));}
+function blocksForChapter(cid){
+  const out=[]; let cur=null;
+  for(const b of sortedBlocks()){
+    if(b.level==='章') cur=b.key;
+    if(cur===cid) out.push(b);
+  }
+  return out;
+}
 async function saveBlock(key,patch){Object.assign(BLOCKS[key],patch);patch.updatedAt=Date.now();await update(ref(db,'content/blocks/'+key),patch);}
 async function addBlockAfter(key){
   const list=sortedBlocks(); const i=list.findIndex(b=>b.key===key);
@@ -804,7 +829,7 @@ function syncEditList(){
   if(!toolbar){ renderEditList(); return; }
   const existing={}; c.querySelectorAll('.eblock').forEach(card=>existing[card.dataset.key]=card);
   let prev=toolbar;
-  for(const b of sortedBlocks()){
+  for(const b of blocksForChapter(editChapterId)){
     let card=existing[b.key];
     if(card){ delete existing[b.key]; updateCard(card,b); }
     else{
@@ -833,12 +858,24 @@ function updateCard(card,b){
 function renderEditList(){
   showReader();
   toggleSidebar(false);
+  const chs=chapterList();
+  if(!editChapterId || !chs.some(c=>c.id===editChapterId)) editChapterId=(chs[0]&&chs[0].id)||null;
+  markSidebar();
+  const idx=chs.findIndex(c=>c.id===editChapterId);
+  const cur=chs[idx];
   const c=$('#content'); c.innerHTML='';
   const bar=el('div','edit-toolbar');
-  bar.innerHTML=`<span class="et-hint">編輯模式 · 拖曳 ⋮⋮ 排序 · 點文字編輯 · 選取文字可加註解</span>`;
+  bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>
+    <span class="et-hint">本章編輯 · 拖曳 ⋮⋮ 排序 · 點 ✎ 改字 · 選取文字可加註解</span>`;
+  const nav=el('div','et-nav');
+  const prev=el('button','et-navbtn','◂ 上一章'); prev.disabled=idx<=0;
+  prev.onclick=()=>{ if(idx>0){editChapterId=chs[idx-1].id;renderEditList();} };
+  const next=el('button','et-navbtn','下一章 ▸'); next.disabled=idx>=chs.length-1;
+  next.onclick=()=>{ if(idx<chs.length-1){editChapterId=chs[idx+1].id;renderEditList();} };
+  nav.append(prev,next); bar.append(nav);
   const exp=el('button','et-export','⬇ 匯出備份'); exp.onclick=exportContent; bar.append(exp);
   c.append(bar);
-  sortedBlocks().forEach(b=>c.append(blockCard(b)));
+  blocksForChapter(editChapterId).forEach(b=>c.append(blockCard(b)));
   window.scrollTo(0,0);
 }
 function blockCard(b){
