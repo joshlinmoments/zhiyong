@@ -281,6 +281,55 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 .deck-ctl{border:0;background:rgba(255,255,255,.14);color:#fff;width:40px;height:40px;border-radius:50%;
   cursor:pointer;font-size:1.1rem;display:grid;place-items:center}
 .deck-ctl:hover{background:rgba(255,255,255,.28)}
+.deck-ctl:disabled{opacity:.3;cursor:default}
+#deckBarPrev,#deckBarNext{font-size:1.5rem;line-height:1}
+/* annotation slide */
+.deck-anno{max-width:900px;margin:0 auto}
+.deck-anno .quote-of{color:var(--ink-soft);border-left:3px solid var(--ochre);padding-left:.9rem;
+  margin-bottom:1.4rem;font-size:1.3rem;line-height:1.7}
+.deck-anno .note{white-space:pre-wrap;font-size:1.45rem;line-height:1.95}
+.deck-anno .note-title{font-weight:700;font-size:2.1rem;line-height:1.55}
+.deck-anno img{display:block;max-width:100%;max-height:62vh;margin:1.2rem auto;border-radius:8px;border:1px solid var(--line)}
+.deck-anno .embed{position:relative;width:100%;aspect-ratio:16/9;margin:1.2rem auto;border-radius:8px;overflow:hidden;background:#000}
+.deck-anno .embed iframe,.deck-anno .embed video{position:absolute;inset:0;width:100%;height:100%;border:0}
+.deck-anno .lk{display:block;margin:.5rem 0;color:var(--jade-dark);font-size:1.1rem}
+
+/* edit toolbar: organizer entry */
+.et-organize{border:1px solid #5a5048;background:#3a342e;color:#f4ecda;border-radius:6px;
+  padding:.34rem .8rem;font-size:.84rem;cursor:pointer;white-space:nowrap;margin-left:.6rem}
+.et-organize:hover{background:#4a433b}
+
+/* ---------- present organizer ---------- */
+#organizer{position:fixed;inset:0;z-index:78;background:rgba(26,25,22,.55);backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;padding:1rem}
+#organizer.hidden{display:none}
+.org-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;width:min(780px,96vw);
+  max-height:90vh;overflow:auto;padding:1.4rem 1.5rem 2rem;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.org-head{display:flex;align-items:center;gap:.6rem;margin-bottom:.3rem}
+.org-head h3{font-family:"Noto Serif TC",serif;font-weight:600;color:var(--cinnabar);font-size:1.25rem;flex:1}
+.org-close{border:0;background:var(--paper-deep);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1.05rem}
+.org-hint{color:var(--ink-soft);font-size:.85rem;margin-bottom:1rem}
+.org-list{display:flex;flex-direction:column;gap:.45rem}
+.org-item{display:flex;align-items:center;gap:.55rem;background:#fff;border:1px solid var(--line);border-radius:9px;padding:.5rem .7rem}
+.org-item.dragging{opacity:.4}
+.org-item.drop-before{box-shadow:0 -3px 0 var(--cinnabar)}
+.org-item.drop-after{box-shadow:0 3px 0 var(--cinnabar)}
+.org-item.hidden-slide{opacity:.5}
+.org-drag{cursor:grab;color:#bbb;font-weight:700;letter-spacing:-2px;user-select:none}
+.org-drag:active{cursor:grabbing}
+.org-num{min-width:1.4rem;text-align:center;color:var(--ink-soft);font-size:.85rem;font-variant-numeric:tabular-nums}
+.org-badge{font-size:.72rem;font-weight:600;padding:.15rem .5rem;border-radius:5px;white-space:nowrap}
+.org-badge.b-content{background:#eef3ef;color:var(--jade-dark)}
+.org-badge.b-anno{background:#fbeec9;color:var(--gold-deep)}
+.org-prev{flex:1;font-size:.92rem;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.org-act{border:1px solid var(--line);background:var(--paper-deep);border-radius:6px;padding:.3rem .6rem;cursor:pointer;font-size:.82rem;color:var(--ink-soft)}
+.org-act:hover{background:var(--line)}
+.org-sub{margin:1.5rem 0 .55rem;font-weight:600;color:var(--ink-soft);font-size:.9rem}
+.org-pool{display:flex;flex-direction:column;gap:.45rem}
+.org-add{display:flex;align-items:center;gap:.55rem;border:1px dashed var(--ochre);border-radius:8px;padding:.5rem .7rem}
+.org-addbtn{border:0;background:var(--jade);color:#fff;border-radius:6px;padding:.32rem .75rem;cursor:pointer;font-size:.82rem;white-space:nowrap}
+.org-addbtn:hover{background:var(--jade-dark)}
+.org-empty{color:var(--ink-soft);font-size:.85rem;padding:.3rem 0}
 
 @media(max-width:760px){
   #modeToggle{display:none}   /* 手機僅供瀏覽，不開放編輯 */
@@ -350,9 +399,25 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
   <div class="deck-stage" id="deckStage"></div>
   <button class="deck-nav deck-next" id="deckNext" aria-label="下一頁">›</button>
   <div class="deck-bar">
-    <button class="deck-ctl" id="deckFs" title="全螢幕">⛶</button>
+    <button class="deck-ctl" id="deckBarPrev" title="上一頁 (←)">‹</button>
+    <button class="deck-ctl" id="deckBarNext" title="下一頁 (→)">›</button>
     <span class="deck-page" id="deckPage">1 / 1</span>
+    <button class="deck-ctl" id="deckFs" title="全螢幕">⛶</button>
     <button class="deck-ctl" id="deckClose" title="離開 (Esc)">✕</button>
+  </div>
+</div>
+
+<!-- present organizer (簡報編排) -->
+<div id="organizer" class="hidden">
+  <div class="org-card">
+    <div class="org-head">
+      <h3 id="orgTitle">簡報編排</h3>
+      <button class="org-close" id="orgClose" title="關閉">✕</button>
+    </div>
+    <div class="org-hint">拖曳 ⋮⋮ 調整放映順序。內文頁可隱藏；註解可加入或移除。</div>
+    <div class="org-list" id="orgList"></div>
+    <div class="org-sub">本章尚未加入的註解</div>
+    <div class="org-pool" id="orgPool"></div>
   </div>
 </div>
 
@@ -486,6 +551,7 @@ async function boot(){
   if(FIREBASE_ON){
     onValue(ref(db,'content/frontMatter'),s=>{ if(s.val()) DATA.frontMatter=s.val(); });
     onValue(ref(db,'content/blocks'),s=>{ BLOCKS=s.val()||{}; onContentChange(); });
+    onValue(ref(db,'content/decks'),s=>{ DECKS=s.val()||{}; });
     listenAnnotations();
   }else{
     BLOCKS={}; (seed.chapters||[]).forEach(()=>{}); DATA.chapters=seed.chapters||[];
@@ -933,6 +999,7 @@ function renderEditList(){
   const c=$('#content'); c.innerHTML='';
   const bar=el('div','edit-toolbar');
   bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>`;
+  const organize=el('button','et-organize','🎞 簡報編排'); organize.onclick=openOrganizer; bar.append(organize);
   const nav=el('div','et-nav');
   const prev=el('button','et-navbtn','◂ 上一章'); prev.disabled=idx<=0;
   prev.onclick=()=>{ if(idx>0){editChapterId=chs[idx-1].id;renderEditList();} };
@@ -1006,8 +1073,39 @@ function exportContent(){
   a.download='智勇教材備份_'+new Date().toISOString().slice(0,10)+'.json';a.click();
 }
 
-/* ============ PRESENT MODE: slideshow deck ============ */
-let DECK=null;            // {segs:[[block,...],...], i:number}
+/* ============ DECK MODEL (shared by playback + organizer) ============ */
+let DECKS={};             // chapterKey -> { items: { id: {order,kind,ref|annKey,hidden} } }
+function sortedDeckItems(cid){
+  const node=(DECKS[cid]&&DECKS[cid].items)||{};
+  return Object.entries(node).map(([id,v])=>({id,...v})).sort((a,b)=>(a.order||0)-(b.order||0));
+}
+function chapterAnnotations(cid){
+  const keys=new Set(blocksForChapter(cid).map(b=>b.key));
+  return Object.values(annAll).filter(a=>keys.has(a.rowId));
+}
+/* reconcile stored deck with current content segments + annotations */
+function effectiveDeck(cid){
+  const segs=chapterSegments(cid);
+  const segIds=segs.map(s=>s[0].key);
+  const segById={}; segs.forEach(s=>segById[s[0].key]=s);
+  const stored=sortedDeckItems(cid);
+  const result=[]; const usedSeg=new Set(), usedAnno=new Set();
+  for(const it of stored){
+    if(it.kind==='content'){ if(segById[it.ref]&&!usedSeg.has(it.ref)){result.push({id:it.id,kind:'content',ref:it.ref,hidden:!!it.hidden});usedSeg.add(it.ref);} }
+    else if(it.kind==='anno'){ if(annAll[it.annKey]&&!usedAnno.has(it.annKey)){result.push({id:it.id,kind:'anno',annKey:it.annKey});usedAnno.add(it.annKey);} }
+  }
+  segIds.forEach((sid,idx)=>{
+    if(usedSeg.has(sid))return;
+    let at=result.length;
+    if(idx===0) at=0;
+    else for(let j=idx-1;j>=0;j--){ const p=result.findIndex(r=>r.kind==='content'&&r.ref===segIds[j]); if(p>=0){at=p+1;break;} }
+    result.splice(at,0,{id:null,kind:'content',ref:sid,hidden:false,_auto:true});
+  });
+  return {result,segById};
+}
+
+/* ============ PRESENT MODE: slideshow playback ============ */
+let DECK=null;            // {slides:[{kind,seg|ann},...], i:number}
 function renderSlide(seg){
   const wrap=el('div','deck-slide');
   seg.forEach(b=>{
@@ -1019,19 +1117,43 @@ function renderSlide(seg){
   });
   return wrap;
 }
+function renderAnnoSlide(ann){
+  const wrap=el('div','deck-slide deck-anno');
+  const align=ann.noteAlign||'left';
+  const noteCls=ann.noteStyle==='title'?'note note-title':'note';
+  let html=`<div class="quote-of">「${esc(ann.selectedText)}」</div>`;
+  (ann.videos||[]).forEach(v=>html+=embedHTML(v.url));
+  (ann.images||[]).forEach(im=>html+=`<img src="${esc(im.url)}" alt="">`);
+  if(ann.note) html+=`<div class="${noteCls}" style="text-align:${align}">${esc(ann.note)}</div>`;
+  (ann.links||[]).forEach(lk=>html+=`<a class="lk" href="${esc(lk.url)}" target="_blank" rel="noopener">🔗 ${esc(lk.label||lk.url)}</a>`);
+  wrap.innerHTML=html;
+  return wrap;
+}
+function buildDeckSlides(cid){
+  const {result,segById}=effectiveDeck(cid);
+  const slides=[];
+  for(const it of result){
+    if(it.kind==='content'){ if(it.hidden)continue; const seg=segById[it.ref]; if(seg&&seg.length) slides.push({kind:'content',seg}); }
+    else if(it.kind==='anno'){ const a=annAll[it.annKey]; if(a) slides.push({kind:'anno',ann:a}); }
+  }
+  return slides;
+}
 function showSlide(i){
   if(!DECK)return;
-  DECK.i=Math.max(0,Math.min(DECK.segs.length-1,i));
-  const st=$('#deckStage'); st.innerHTML=''; st.append(renderSlide(DECK.segs[DECK.i])); st.scrollTop=0;
-  $('#deckPage').textContent=(DECK.i+1)+' / '+DECK.segs.length;
-  $('#deckPrev').disabled=DECK.i<=0;
-  $('#deckNext').disabled=DECK.i>=DECK.segs.length-1;
+  DECK.i=Math.max(0,Math.min(DECK.slides.length-1,i));
+  const s=DECK.slides[DECK.i];
+  const node=s.kind==='anno'?renderAnnoSlide(s.ann):renderSlide(s.seg);
+  const st=$('#deckStage'); st.innerHTML=''; st.append(node); st.scrollTop=0;
+  $('#deckPage').textContent=(DECK.i+1)+' / '+DECK.slides.length;
+  const atStart=DECK.i<=0, atEnd=DECK.i>=DECK.slides.length-1;
+  $('#deckPrev').disabled=atStart; $('#deckBarPrev').disabled=atStart;
+  $('#deckNext').disabled=atEnd;   $('#deckBarNext').disabled=atEnd;
 }
 function openDeck(cid){
   if(!cid){alert('請先進入一個章節，再按展示。');return;}
-  const segs=chapterSegments(cid).filter(s=>s.length);
-  if(!segs.length){alert('此章節沒有可展示的內容。');return;}
-  DECK={segs,i:0};
+  const slides=buildDeckSlides(cid);
+  if(!slides.length){alert('此章節沒有可展示的內容。');return;}
+  DECK={slides,i:0};
   $('#deck').classList.remove('hidden');
   $('#presentBtn').classList.add('on');
   document.addEventListener('keydown',deckKey);
@@ -1051,10 +1173,90 @@ function deckKey(e){
 }
 $('#deckPrev').onclick=()=>showSlide(DECK.i-1);
 $('#deckNext').onclick=()=>showSlide(DECK.i+1);
+$('#deckBarPrev').onclick=()=>showSlide(DECK.i-1);
+$('#deckBarNext').onclick=()=>showSlide(DECK.i+1);
 $('#deckClose').onclick=closeDeck;
 $('#deckFs').onclick=()=>{ const d=$('#deck');
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   else if(d.requestFullscreen) d.requestFullscreen().catch(()=>{}); };
+
+/* ============ PRESENT ORGANIZER (簡報編排) ============ */
+let ORG=null, orgCid=null, orgDrag=null;
+function firstLine(seg){
+  for(const b of seg){ const t=(b.text||'').trim(); if(t) return t.split('\n')[0]; }
+  return '（空白頁）';
+}
+async function saveDeck(){
+  const map={};
+  ORG.forEach((it,idx)=>{
+    if(!it.id){ it.id='d'+Date.now().toString(36)+idx.toString(36)+Math.floor(Math.random()*1e4).toString(36); it._auto=false; }
+    map[it.id]={order:idx*10,kind:it.kind};
+    if(it.kind==='content'){ map[it.id].ref=it.ref; if(it.hidden) map[it.id].hidden=true; }
+    else map[it.id].annKey=it.annKey;
+  });
+  await set(ref(db,'content/decks/'+orgCid+'/items'),map);
+}
+function openOrganizer(){
+  if(!editChapterId){alert('請先選擇章節。');return;}
+  orgCid=editChapterId;
+  ORG=effectiveDeck(orgCid).result;
+  $('#orgTitle').textContent='簡報編排 · '+(chapterList().find(c=>c.id===orgCid)?.title||'');
+  $('#organizer').classList.remove('hidden');
+  renderOrganizer();
+}
+function closeOrganizer(){ $('#organizer').classList.add('hidden'); ORG=null; }
+function renderOrganizer(){
+  const {segById}=effectiveDeck(orgCid);
+  const list=$('#orgList'); list.innerHTML='';
+  let visN=0;
+  ORG.forEach((it,idx)=>{
+    const row=el('div','org-item'+(it.kind==='content'&&it.hidden?' hidden-slide':'')); row.dataset.idx=idx;
+    const dh=el('span','org-drag','⋮⋮'); dh.draggable=true;
+    const isAnno=it.kind==='anno';
+    const badge=el('span','org-badge '+(isAnno?'b-anno':'b-content'), isAnno?'註解':'內文');
+    let prevTxt;
+    if(isAnno){ const a=annAll[it.annKey]; prevTxt='「'+(a?a.selectedText:'？')+'」'+(a&&a.note?' — '+a.note.slice(0,18):''); }
+    else { const seg=segById[it.ref]; prevTxt=seg?firstLine(seg):'（內容已移除）'; }
+    if(!(it.kind==='content'&&it.hidden)) visN++;
+    const num=el('span','org-num', (it.kind==='content'&&it.hidden)?'—':String(visN));
+    const prev=el('span','org-prev',esc(prevTxt));
+    row.append(dh,num,badge,prev);
+    if(it.kind==='content'){
+      const eye=el('button','org-act', it.hidden?'顯示':'隱藏');
+      eye.onclick=async()=>{ it.hidden=!it.hidden; await saveDeck(); renderOrganizer(); };
+      row.append(eye);
+    }else{
+      const rm=el('button','org-act','移除');
+      rm.onclick=async()=>{ ORG.splice(idx,1); await saveDeck(); renderOrganizer(); };
+      row.append(rm);
+    }
+    // drag reorder
+    dh.addEventListener('dragstart',e=>{orgDrag=idx;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text','');});
+    dh.addEventListener('dragend',()=>row.classList.remove('dragging'));
+    row.addEventListener('dragover',e=>{if(orgDrag===null||orgDrag===idx)return;e.preventDefault();
+      const after=e.offsetY>row.offsetHeight/2; row.classList.toggle('drop-after',after); row.classList.toggle('drop-before',!after);});
+    row.addEventListener('dragleave',()=>row.classList.remove('drop-after','drop-before'));
+    row.addEventListener('drop',async e=>{e.preventDefault();const after=row.classList.contains('drop-after');row.classList.remove('drop-after','drop-before');
+      if(orgDrag!==null&&orgDrag!==idx){ let to=idx+(after?1:0); const moved=ORG.splice(orgDrag,1)[0]; if(orgDrag<to)to--; ORG.splice(to,0,moved); await saveDeck(); renderOrganizer(); }
+      orgDrag=null;});
+    list.append(row);
+  });
+  // annotation pool (not yet in deck)
+  const inDeck=new Set(ORG.filter(i=>i.kind==='anno').map(i=>i.annKey));
+  const pool=$('#orgPool'); pool.innerHTML='';
+  const anns=chapterAnnotations(orgCid).filter(a=>!inDeck.has(a._key));
+  if(!anns.length){ pool.append(el('div','org-empty','（本章註解都已加入，或尚無註解）')); }
+  anns.forEach(a=>{
+    const row=el('div','org-add');
+    row.append(el('span','org-badge b-anno','註解'));
+    row.append(el('span','org-prev',esc('「'+a.selectedText+'」'+(a.note?' — '+a.note.slice(0,18):''))));
+    const add=el('button','org-addbtn','加入簡報');
+    add.onclick=async()=>{ ORG.push({id:null,kind:'anno',annKey:a._key}); await saveDeck(); renderOrganizer(); };
+    row.append(add); pool.append(row);
+  });
+}
+$('#orgClose').onclick=closeOrganizer;
+$('#organizer').onclick=e=>{ if(e.target.id==='organizer') closeOrganizer(); };
 
 boot();
 </script>
