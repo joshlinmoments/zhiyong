@@ -294,14 +294,14 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 .deck-anno .embed{position:relative;width:100%;aspect-ratio:16/9;margin:1.2rem auto;border-radius:8px;overflow:hidden;background:#000}
 .deck-anno .embed iframe,.deck-anno .embed video{position:absolute;inset:0;width:100%;height:100%;border:0}
 .deck-anno .lk{display:block;margin:.5rem 0;color:var(--jade-dark);font-size:1.1rem}
-/* context band — compact dark bar above the white card, only on content slides */
-.deck-ctx{display:flex;align-items:center;gap:.6rem;flex:none;align-self:flex-start;max-width:100%;
-  background:#262220;border:1px solid #3a342e;border-radius:8px;padding:.38rem .95rem;
-  box-shadow:0 4px 12px rgba(0,0,0,.3)}
+/* context — two compact dark pills (章 / 節) side by side, only on content slides */
+.deck-ctx{display:flex;align-items:center;gap:.55rem;flex:none;align-self:flex-start;max-width:100%;flex-wrap:wrap}
 .deck-ctx.hidden{display:none}
-.deck-ctx-ch{font-size:.82rem;color:var(--ochre);letter-spacing:.04em;white-space:nowrap}
-.deck-ctx-sep{color:#6b6258;font-size:.78rem}
-.deck-ctx-sec{font-size:.95rem;font-weight:600;color:#fff;letter-spacing:.03em;white-space:nowrap}
+.deck-ctx-ch,.deck-ctx-sec{background:#262220;border:1px solid #3a342e;border-radius:8px;
+  padding:.38rem .95rem;font-size:.95rem;letter-spacing:.03em;white-space:nowrap;
+  box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.deck-ctx-ch{color:var(--ochre)}
+.deck-ctx-sec{color:#fff;font-weight:600}
 .deck-slide .unit{font-size:calc(1.5rem * var(--reading-scale))}
 /*章 / 節 title slides (centred) */
 .deck-title{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:62vh}
@@ -1150,7 +1150,7 @@ function showSlide(i){
   if(s.kind==='content'){
     let h='';
     if(s.ch) h+=`<span class="deck-ctx-ch">${esc(s.ch)}</span>`;
-    if(s.sec) h+=`${s.ch?'<span class="deck-ctx-sep">·</span>':''}<span class="deck-ctx-sec">${esc(s.sec)}</span>`;
+    if(s.sec) h+=`<span class="deck-ctx-sec">${esc(s.sec)}</span>`;
     ctx.innerHTML=h; ctx.classList.toggle('hidden',!h);
     st.append(renderParaSlide(s.block));
   }else{
