@@ -363,6 +363,57 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 .sb-toggle{display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;padding:.35rem .45rem;cursor:pointer}
 .sb-toggle svg line{stroke:#5a4221;stroke-width:1.7;stroke-linecap:round}
 .sb-toggle:hover svg line{stroke:#3a2a12}
+
+/* ============ FREE PAGE (PPT-style canvas) ============ */
+/* shared canvas: 16:9, elements positioned by %, text scales via container-query units */
+.free-canvas{position:relative;aspect-ratio:16/9;width:100%;background:#fff;overflow:hidden;container-type:size}
+.fc-el{position:absolute;box-sizing:border-box}
+.fc-text{line-height:1.35;white-space:pre-wrap;word-break:break-word;font-size:calc(var(--fs,7) * 1cqh)}
+.fc-image{display:flex;align-items:center;justify-content:center}
+.fc-image img{max-width:100%;max-height:100%;object-fit:contain}
+.fc-video{background:#000}
+.fc-video .embed{position:absolute;inset:0}
+.fc-video iframe,.fc-video video{position:absolute;inset:0;width:100%;height:100%;border:0}
+/* present free slide fills the stage */
+.deck-free{padding:0}
+.deck-stage:has(.deck-free){padding:0}
+.deck-free .free-canvas{border-radius:8px}
+
+/* edit-mode 自訂頁 card */
+.eblock.lv-free{background:#f0ece3;border-color:var(--ochre)}
+.eb-free-preview{position:relative;width:100%;max-width:420px;margin:.2rem 0;border:1px solid var(--line);
+  border-radius:8px;overflow:hidden;cursor:pointer;background:#fff}
+.eb-free-preview .free-canvas{pointer-events:none}
+.eb-free-preview .efp-edit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(43,39,36,0);color:transparent;font-weight:600;transition:.15s}
+.eb-free-preview:hover .efp-edit{background:rgba(43,39,36,.45);color:#fff}
+.eb-free-empty{display:flex;align-items:center;justify-content:center;height:160px;color:var(--ink-soft);
+  border:1px dashed var(--ochre);border-radius:8px;cursor:pointer;background:#fff}
+.eb-free-empty:hover{background:var(--paper)}
+
+/* canvas editor overlay */
+#canvasEditor{position:fixed;inset:0;z-index:82;background:#14110d;display:flex;flex-direction:column}
+#canvasEditor.hidden{display:none}
+.ce-bar{display:flex;align-items:center;gap:.5rem;padding:.6rem 1rem;background:#1c1a17;color:#f4ecda;flex-wrap:wrap}
+.ce-bar .ce-title{font-weight:600;margin-right:.4rem}
+.ce-btn{border:1px solid #4a433b;background:#2d2925;color:#f4ecda;border-radius:7px;padding:.4rem .8rem;cursor:pointer;font-size:.86rem}
+.ce-btn:hover{background:#3a342e}
+.ce-btn.primary{background:#fff;color:#1c1a17;border-color:#fff;font-weight:600}
+.ce-btn.danger{color:#ff9b8a;border-color:#5a3a33}
+.ce-spacer{flex:1}
+.ce-fs{display:flex;align-items:center;gap:.4rem;color:#cfc7b6;font-size:.82rem}
+.ce-fs input{width:90px}
+.ce-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:1.2rem;min-height:0}
+.ce-canvas{position:relative;background:#fff;aspect-ratio:16/9;container-type:size;border-radius:6px;
+  width:min(1100px,90vw,calc(78vh * 16/9));box-shadow:0 16px 50px rgba(0,0,0,.5)}
+.ce-el{cursor:move;outline:1px dashed transparent}
+.ce-el:hover{outline-color:rgba(110,156,138,.6)}
+.ce-el.selected{outline:2px solid var(--jade);outline-offset:0}
+.ce-el[contenteditable=true]{cursor:text;outline:2px solid var(--jade)}
+.ce-handle{position:absolute;right:-7px;bottom:-7px;width:14px;height:14px;background:var(--jade);
+  border:2px solid #fff;border-radius:50%;cursor:nwse-resize;display:none}
+.ce-el.selected .ce-handle{display:block}
+.ce-hint{color:#8a8276;font-size:.8rem;padding:0 1rem .6rem;background:#1c1a17}
 </style>
 </head>
 <body>
@@ -436,6 +487,24 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
   </div>
 </div>
 
+<!-- free-page canvas editor (PPT-style) -->
+<div id="canvasEditor" class="hidden">
+  <div class="ce-bar">
+    <span class="ce-title">🎨 自訂頁面</span>
+    <button class="ce-btn" id="ceAddText">＋ 文字</button>
+    <button class="ce-btn" id="ceAddImage">＋ 圖片</button>
+    <button class="ce-btn" id="ceAddVideo">＋ 影片</button>
+    <span class="ce-fs hidden" id="ceFsCtl">字級 <input type="range" id="ceFs" min="2" max="22" step="0.5"></span>
+    <button class="ce-btn danger hidden" id="ceDel">刪除所選</button>
+    <span class="ce-spacer"></span>
+    <button class="ce-btn" id="ceCancel">取消</button>
+    <button class="ce-btn primary" id="ceDone">完成</button>
+    <input type="file" id="ceFile" accept="image/*" class="hidden">
+  </div>
+  <div class="ce-wrap"><div class="ce-canvas" id="ceCanvas"></div></div>
+  <div class="ce-hint">點選元素可拖曳移動、右下角圓點縮放；文字雙擊可編輯。</div>
+</div>
+
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, onValue, push, update, remove, set }
@@ -490,6 +559,8 @@ let editingKey=null;        // when editing existing annotation
 const $=s=>document.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
 const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const genId=p=>p+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
 
 /* ---------- font scale (slider) ---------- */
 let fsVal=+(localStorage.getItem('zy_fs2')||100);
@@ -539,7 +610,7 @@ function sortedBlocks(){
 function deriveData(){
   const chapters=[]; let ch=null,sec=null;
   for(const b of sortedBlocks()){
-    if(b.level==='換頁') continue;            // page breaks: ignored for reading
+    if(b.level==='換頁'||b.level==='自訂頁') continue;   // 換頁(廢除)/自訂頁：閱讀模式不顯示
     if(b.level==='章'){ch={id:b.key,title:b.text,sections:[]};chapters.push(ch);sec=null;}
     else if(b.level==='節'){if(!ch){ch={id:'_pre',title:'',sections:[]};chapters.push(ch);}sec={id:b.key,title:b.text,units:[]};ch.sections.push(sec);}
     else{if(!ch){ch={id:'_pre',title:'',sections:[]};chapters.push(ch);}if(!sec){sec={id:ch.id+'_s',title:'',units:[]};ch.sections.push(sec);}
@@ -923,8 +994,8 @@ document.addEventListener('click',e=>{
 });
 
 /* ============ EDIT MODE: block editor ============ */
-const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote','換頁':'pb'};
-const LEVELS=['章','節','內文','引用'];   // 換頁 已廢除：簡報改為每段自動分頁
+const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote','換頁':'pb','自訂頁':'free'};
+const LEVELS=['章','節','內文','引用'];   // 換頁 已廢除；自訂頁 只能用專屬按鈕建立
 let pendingEditKey=null;
 /* chapter scoping — edit one chapter at a time */
 function chapterList(){return sortedBlocks().filter(b=>b.level==='章').map(b=>({id:b.key,title:b.text}));}
@@ -949,6 +1020,16 @@ async function addBlockAfter(key){
   const rec={order,level:'內文',text:'',updatedAt:Date.now()};
   BLOCKS[nk]=rec; pendingEditKey=nk; syncEditList();          // instant
   await set(ref(db,'content/blocks/'+nk),rec);
+}
+async function addFreePageAfter(key){
+  const list=sortedBlocks(); const i=list.findIndex(b=>b.key===key);
+  const cur=list[i].order||(i+1)*10; const nxt=list[i+1]?list[i+1].order:cur+20;
+  const order=(cur+nxt)/2;
+  const nk=genId('b');
+  const rec={order,level:'自訂頁',text:'',els:{},updatedAt:Date.now()};
+  BLOCKS[nk]=rec; syncEditList();
+  await set(ref(db,'content/blocks/'+nk),rec);
+  openCanvasEditor(nk);
 }
 async function delBlock(key){
   if(!confirm('確定刪除此區塊？'))return;
@@ -990,9 +1071,27 @@ function syncEditList(){
   }
   Object.values(existing).forEach(card=>card.remove());
 }
+function freeCardBody(b){
+  const wrap=el('div','eb-free-body');
+  const hasEls=b.els&&Object.keys(b.els).length;
+  if(hasEls){
+    const pv=el('div','eb-free-preview');
+    const cv=el('div','free-canvas');
+    Object.entries(b.els).forEach(([id,e])=>cv.append(fcEl(id,e)));
+    pv.append(cv,el('div','efp-edit','🎨 編輯版面'));
+    pv.onclick=()=>openCanvasEditor(b.key);
+    wrap.append(pv);
+  }else{
+    const empty=el('div','eb-free-empty','🎨 空白自訂頁 — 點此編輯版面');
+    empty.onclick=()=>openCanvasEditor(b.key);
+    wrap.append(empty);
+  }
+  return wrap;
+}
 function updateCard(card,b){
   const sel=card.querySelector('.eb-level');
   if(sel && sel.value!==b.level){ sel.value=b.level; card.className='eblock lv-'+(LV_CLASS[b.level]||'prose'); }
+  if(b.level==='自訂頁'){ const body=card.querySelector('.eb-free-body'); if(body) body.replaceWith(freeCardBody(b)); return; }
   const tx=card.querySelector('.eb-text'); if(!tx) return;
   if(tx.querySelector('textarea')) return;                       // don't clobber an open editor
   const html=blockBodyHTML(b);
@@ -1033,11 +1132,19 @@ function blockCard(b){
   edit.title='改字'; edit.onclick=()=>startEdit(card,b.key);
   const add=el('button','eb-ico','<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>');
   add.title='在下方新增區塊'; add.onclick=()=>addBlockAfter(b.key);
+  const fp=el('button','eb-ico eb-fp','<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.6"/><path d="M4.5 17l4-4 3 2.5 3.5-3.5 4.5 4.5"/></svg>');
+  fp.title='在下方新增自訂頁（簡報）'; fp.onclick=()=>addFreePageAfter(b.key);
   const del=el('button','eb-ico eb-del','<svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>');
   del.title='刪除'; del.onclick=()=>delBlock(b.key);
-  bar.append(dh,sel,edit,add,del);
-  const tx=el('div','eb-text'); tx.dataset.unit=b.key; tx.innerHTML=blockBodyHTML(b);
-  card.append(bar,tx);
+  bar.append(dh,sel,edit,add,fp,del);
+  let body;
+  if(b.level==='自訂頁'){
+    [sel,edit,add,fp].forEach(x=>x.style.display='none');
+    body=freeCardBody(b);
+  }else{
+    body=el('div','eb-text'); body.dataset.unit=b.key; body.innerHTML=blockBodyHTML(b);
+  }
+  card.append(bar,body);
   dh.addEventListener('dragstart',e=>{dragKey=b.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text','');});
   dh.addEventListener('dragend',()=>card.classList.remove('dragging'));
   card.addEventListener('dragover',e=>{if(!dragKey||dragKey===b.key)return;e.preventDefault();
@@ -1105,6 +1212,7 @@ function buildDeckSlides(cid){
     if(b.level==='章'){ chTitle=b.text||''; secTitle=''; slides.push({kind:'chapter',title:chTitle}); continue; }
     if(b.level==='節'){ secTitle=b.text||''; slides.push({kind:'section',ch:chTitle,title:secTitle}); continue; }
     if(b.level==='換頁') continue;                              // legacy, ignored
+    if(b.level==='自訂頁'){ slides.push({kind:'free',block:b}); continue; }
     slides.push({kind:'content',block:b,ch:chTitle,sec:secTitle});
     (annByRow[b.key]||[]).slice().sort((x,y)=>x.startOffset-y.startOffset)
       .forEach(a=>slides.push({kind:'anno',ann:a}));
@@ -1116,6 +1224,31 @@ function renderParaSlide(b){
   const d=el('div','unit '+(b.level==='引用'?'quote':'prose'));
   d.innerHTML=esc(b.text||'').replace(/\n/g,'<br>');
   wrap.append(d);
+  return wrap;
+}
+/* one free-canvas element (static; shared by present + edit preview) */
+function fcEl(id,e){
+  const d=el('div','fc-el fc-'+e.type); d.dataset.id=id;
+  d.style.left=(e.x||0)+'%'; d.style.top=(e.y||0)+'%';
+  d.style.width=(e.w||20)+'%'; d.style.height=(e.h||20)+'%';
+  if(e.type==='text'){
+    d.style.setProperty('--fs',e.fs||7);
+    d.style.color=e.color||'#2b2724';
+    d.style.textAlign=e.align||'left';
+    d.style.fontWeight=e.weight||400;
+    d.textContent=e.text||'';
+  }else if(e.type==='image'){
+    d.innerHTML=`<img src="${esc(e.url||'')}" alt="">`;
+  }else if(e.type==='video'){
+    d.innerHTML=embedHTML(e.url||'');
+  }
+  return d;
+}
+function renderFreeSlide(b){
+  const wrap=el('div','deck-slide deck-free');
+  const cv=el('div','free-canvas');
+  Object.entries(b.els||{}).forEach(([id,e])=>cv.append(fcEl(id,e)));
+  wrap.append(cv);
   return wrap;
 }
 function renderChapterSlide(s){
@@ -1157,6 +1290,7 @@ function showSlide(i){
     ctx.classList.add('hidden'); ctx.innerHTML='';
     st.append(s.kind==='chapter'?renderChapterSlide(s)
             :s.kind==='section'?renderSectionSlide(s)
+            :s.kind==='free'?renderFreeSlide(s.block)
             :renderAnnoSlide(s.ann));
   }
   st.scrollTop=0;
@@ -1195,6 +1329,91 @@ $('#deckClose').onclick=closeDeck;
 $('#deckFs').onclick=()=>{ const d=$('#deck');
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   else if(d.requestFullscreen) d.requestFullscreen().catch(()=>{}); };
+
+/* ============ FREE PAGE: PPT-style canvas editor ============ */
+let CE=null;             // {key, els, sel}
+function openCanvasEditor(key){
+  if(!BLOCKS[key])return;
+  CE={key, els:JSON.parse(JSON.stringify(BLOCKS[key].els||{})), sel:null};
+  $('#canvasEditor').classList.remove('hidden');
+  renderCE();
+}
+function renderCE(){
+  const cv=$('#ceCanvas'); cv.innerHTML='';
+  Object.entries(CE.els).forEach(([id,e])=>cv.append(ceEl(id,e)));
+  markCeSel();
+}
+function ceEl(id,e){
+  const d=fcEl(id,e); d.classList.add('ce-el');
+  const h=el('div','ce-handle'); d.append(h);
+  d.addEventListener('mousedown',ev=>{ if(ev.target===h||d.getAttribute('contenteditable')==='true')return; ceStartDrag(ev,id); });
+  h.addEventListener('mousedown',ev=>{ ev.stopPropagation(); ceStartResize(ev,id); });
+  if(e.type==='text') d.addEventListener('dblclick',()=>ceEditText(id,d));
+  return d;
+}
+function ceSelect(id){ CE.sel=id; markCeSel(); }
+function markCeSel(){
+  $('#ceCanvas').querySelectorAll('.ce-el').forEach(d=>d.classList.toggle('selected',d.dataset.id===CE.sel));
+  const e=CE.sel&&CE.els[CE.sel];
+  $('#ceDel').classList.toggle('hidden',!e);
+  const fsCtl=$('#ceFsCtl'); const isText=e&&e.type==='text';
+  fsCtl.classList.toggle('hidden',!isText);
+  if(isText){ $('#ceFs').value=e.fs||7; }
+}
+function ceCanvasRect(){ return $('#ceCanvas').getBoundingClientRect(); }
+function ceStartDrag(ev,id){
+  ev.preventDefault(); ceSelect(id);
+  const r=ceCanvasRect(), e=CE.els[id]; const sx=ev.clientX, sy=ev.clientY, ox=e.x, oy=e.y;
+  const node=$('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`);
+  const mm=m=>{ e.x=clamp(ox+(m.clientX-sx)/r.width*100,0,100-e.w); e.y=clamp(oy+(m.clientY-sy)/r.height*100,0,100-e.h);
+    node.style.left=e.x+'%'; node.style.top=e.y+'%'; };
+  const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+}
+function ceStartResize(ev,id){
+  ev.preventDefault(); ceSelect(id);
+  const r=ceCanvasRect(), e=CE.els[id]; const sx=ev.clientX, sy=ev.clientY, ow=e.w, oh=e.h;
+  const node=$('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`);
+  const mm=m=>{ e.w=clamp(ow+(m.clientX-sx)/r.width*100,5,100-e.x); e.h=clamp(oh+(m.clientY-sy)/r.height*100,3,100-e.y);
+    node.style.width=e.w+'%'; node.style.height=e.h+'%'; };
+  const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
+}
+function ceEditText(id,node){
+  const e=CE.els[id]; const h=node.querySelector('.ce-handle'); if(h) h.remove();   // keep handle out of editable text
+  node.setAttribute('contenteditable','true'); node.focus();
+  const sel=window.getSelection(), rg=document.createRange(); rg.selectNodeContents(node); sel.removeAllRanges(); sel.addRange(rg);
+  const done=()=>{ node.removeEventListener('blur',done); e.text=node.innerText.replace(/\n+$/,''); renderCE(); ceSelect(id); };
+  node.addEventListener('blur',done);
+}
+$('#ceAddText').onclick=()=>{ const id=genId('e');
+  CE.els[id]={type:'text',x:18,y:38,w:64,h:18,fs:8,text:'雙擊輸入文字',align:'center',color:'#2b2724',weight:600};
+  renderCE(); ceSelect(id);
+  setTimeout(()=>{ const n=$('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`); if(n) ceEditText(id,n); },30); };
+$('#ceAddImage').onclick=()=>$('#ceFile').click();
+$('#ceFile').onchange=async ev=>{ const f=ev.target.files[0]; if(!f)return;
+  try{ const url=await compressImage(f); const id=genId('e');
+    CE.els[id]={type:'image',x:25,y:18,w:50,h:55,url}; renderCE(); ceSelect(id);
+  }catch(err){ alert('圖片處理失敗：'+err.message); }
+  ev.target.value=''; };
+$('#ceAddVideo').onclick=()=>{ const u=prompt('貼上影片網址（YouTube / Vimeo / mp4）：'); if(!u)return;
+  const id=genId('e'); CE.els[id]={type:'video',x:18,y:16,w:64,h:62,url:u.trim()}; renderCE(); ceSelect(id); };
+$('#ceFs').oninput=e=>{ if(CE.sel&&CE.els[CE.sel]&&CE.els[CE.sel].type==='text'){
+  CE.els[CE.sel].fs=+e.target.value; const n=$('#ceCanvas').querySelector(`.ce-el[data-id="${CE.sel}"]`); if(n) n.style.setProperty('--fs',CE.els[CE.sel].fs); } };
+$('#ceDel').onclick=()=>{ if(CE.sel){ delete CE.els[CE.sel]; CE.sel=null; renderCE(); } };
+$('#ceCanvas').onmousedown=e=>{ if(e.target.id==='ceCanvas'){ CE.sel=null; markCeSel(); } };
+$('#ceCancel').onclick=()=>{ $('#canvasEditor').classList.add('hidden'); CE=null; };
+$('#ceDone').onclick=async()=>{
+  const key=CE.key, els=CE.els;
+  $('#canvasEditor').classList.add('hidden'); CE=null;
+  await saveBlock(key,{els}); syncEditList();
+};
+document.addEventListener('keydown',e=>{
+  if($('#canvasEditor').classList.contains('hidden'))return;
+  const ed=document.querySelector('.ce-el[contenteditable=true]');
+  if(e.key==='Escape'&&!ed){ $('#ceCancel').click(); }
+  if((e.key==='Delete'||e.key==='Backspace')&&CE&&CE.sel&&!ed){ e.preventDefault(); $('#ceDel').click(); }
+});
 
 boot();
 </script>
