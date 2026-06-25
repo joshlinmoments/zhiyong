@@ -293,6 +293,22 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 .deck-anno .embed{position:relative;width:100%;aspect-ratio:16/9;margin:1.2rem auto;border-radius:8px;overflow:hidden;background:#000}
 .deck-anno .embed iframe,.deck-anno .embed video{position:absolute;inset:0;width:100%;height:100%;border:0}
 .deck-anno .lk{display:block;margin:.5rem 0;color:var(--jade-dark);font-size:1.1rem}
+/* content-slide context header (章 / 節) */
+.deck-ctx{margin-bottom:1.6rem;padding-bottom:.7rem;border-bottom:1px solid var(--line)}
+.deck-ctx-ch{font-size:.95rem;color:var(--ochre);letter-spacing:.06em}
+.deck-ctx-sec{font-size:1.3rem;font-weight:600;color:var(--ink);margin-top:.15rem}
+.deck-slide .unit{font-size:calc(1.5rem * var(--reading-scale))}
+
+/* reading-mode annotation block (gold box below a paragraph) */
+.anno-stack{display:flex;flex-direction:column;gap:.5rem;margin:.2rem 0 1rem}
+.anno-block{display:flex;align-items:center;gap:.6rem;cursor:pointer;
+  background:linear-gradient(0deg,#fdf3d8,#fdf7e6);border:1px solid var(--ochre);
+  border-left:4px solid var(--gold-deep);border-radius:9px;padding:.6rem .9rem;transition:.15s}
+.anno-block:hover{background:#fbeec9;box-shadow:0 2px 10px rgba(176,127,34,.18)}
+.anno-block .ab-ico{font-size:1rem}
+.anno-block .ab-q{flex:1;color:var(--gold-deep);font-weight:600;
+  font-size:calc(1rem * var(--reading-scale));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.anno-block .ab-go{color:var(--ink-soft);font-size:.85rem;white-space:nowrap}
 
 /* edit toolbar: organizer entry */
 .et-organize{border:1px solid #5a5048;background:#3a342e;color:#f4ecda;border-radius:6px;
@@ -404,20 +420,6 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
     <span class="deck-page" id="deckPage">1 / 1</span>
     <button class="deck-ctl" id="deckFs" title="全螢幕">⛶</button>
     <button class="deck-ctl" id="deckClose" title="離開 (Esc)">✕</button>
-  </div>
-</div>
-
-<!-- present organizer (簡報編排) -->
-<div id="organizer" class="hidden">
-  <div class="org-card">
-    <div class="org-head">
-      <h3 id="orgTitle">簡報編排</h3>
-      <button class="org-close" id="orgClose" title="關閉">✕</button>
-    </div>
-    <div class="org-hint">拖曳 ⋮⋮ 調整放映順序。內文頁可隱藏；註解可加入或移除。</div>
-    <div class="org-list" id="orgList"></div>
-    <div class="org-sub">本章尚未加入的註解</div>
-    <div class="org-pool" id="orgPool"></div>
   </div>
 </div>
 
@@ -551,7 +553,6 @@ async function boot(){
   if(FIREBASE_ON){
     onValue(ref(db,'content/frontMatter'),s=>{ if(s.val()) DATA.frontMatter=s.val(); });
     onValue(ref(db,'content/blocks'),s=>{ BLOCKS=s.val()||{}; onContentChange(); });
-    onValue(ref(db,'content/decks'),s=>{ DECKS=s.val()||{}; });
     listenAnnotations();
   }else{
     BLOCKS={}; (seed.chapters||[]).forEach(()=>{}); DATA.chapters=seed.chapters||[];
@@ -635,6 +636,7 @@ function renderFront(which){
     c.append(el('div','ch-head',`<div class="seal-num">序</div><h2>${esc(pf.title)}</h2>`));
     const u=el('div','unit quote'); u.dataset.unit='front-preface';
     u.innerHTML=renderText('front-preface',pf.text); c.append(u);
+    const ac=el('div','anno-stack'); ac.dataset.annorow='front-preface'; fillAnnoStack(ac,'front-preface'); c.append(ac);
     c.append(el('p','unit',`<div style="text-align:right;color:var(--ink-soft)">${esc(pf.sign)}</div>`));
   }
   window.scrollTo(0,0);
@@ -655,6 +657,7 @@ function renderChapter(id){
     s.units.forEach(u=>{
       const d=el('div','unit '+(u.kind==='quote'?'quote':'prose'));
       d.dataset.unit=u.id; d.innerHTML=renderText(u.id,u.text); c.append(d);
+      const ac=el('div','anno-stack'); ac.dataset.annorow=u.id; fillAnnoStack(ac,u.id); c.append(ac);
     });
   });
   window.scrollTo(0,0);
@@ -876,10 +879,19 @@ function listenAnnotations(){
 }
 function rerenderVisible(){
   document.querySelectorAll('[data-unit]').forEach(u=>{
-    const key=u.dataset.unit;
     if(u.querySelector('textarea')) return;                       // don't clobber an open editor
-    if(BLOCKS[key] && BLOCKS[key].level==='換頁'){ u.innerHTML='<div class="pb-divider">✂ 換頁</div>'; return; }
-    u.innerHTML=renderText(key,unitText(key));
+    u.innerHTML=renderText(u.dataset.unit,unitText(u.dataset.unit));
+  });
+  document.querySelectorAll('[data-annorow]').forEach(c=>fillAnnoStack(c,c.dataset.annorow));
+}
+/* reading-mode annotation blocks (gold boxes) below a paragraph */
+function fillAnnoStack(container,rowId){
+  container.innerHTML='';
+  (annByRow[rowId]||[]).slice().sort((a,b)=>a.startOffset-b.startOffset).forEach(a=>{
+    const box=el('div','anno-block');
+    box.innerHTML=`<span class="ab-ico">📝</span><span class="ab-q">「${esc(a.selectedText)}」</span><span class="ab-go">查看 ›</span>`;
+    box.onclick=()=>openPanel(a);
+    container.append(box);
   });
 }
 
@@ -899,7 +911,7 @@ document.addEventListener('click',e=>{
 
 /* ============ EDIT MODE: block editor ============ */
 const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote','換頁':'pb'};
-const LEVELS=['章','節','內文','引用'];   // 換頁 only via its own button (avoid mis-select)
+const LEVELS=['章','節','內文','引用'];   // 換頁 已廢除：簡報改為每段自動分頁
 let pendingEditKey=null;
 /* chapter scoping — edit one chapter at a time */
 function chapterList(){return sortedBlocks().filter(b=>b.level==='章').map(b=>({id:b.key,title:b.text}));}
@@ -911,19 +923,8 @@ function blocksForChapter(cid){
   }
   return out;
 }
-/* split a chapter into content pages (segments) by 換頁 markers */
-function chapterSegments(cid){
-  const segs=[]; let cur=[];
-  for(const b of blocksForChapter(cid)){
-    if(b.level==='換頁'){ if(cur.length){segs.push(cur);cur=[];} }
-    else cur.push(b);
-  }
-  if(cur.length) segs.push(cur);
-  return segs;
-}
-/* editor body: page-break shows a divider, otherwise the (annotated) text */
+/* editor body: the (annotated) text, or empty placeholder */
 function blockBodyHTML(b){
-  if(b.level==='換頁') return '<div class="pb-divider">✂ 換頁</div>';
   return renderText(b.key,b.text)||'<span class="eb-empty">（空白，點 ✎ 鉛筆圖示輸入）</span>';
 }
 async function saveBlock(key,patch){Object.assign(BLOCKS[key],patch);patch.updatedAt=Date.now();await update(ref(db,'content/blocks/'+key),patch);}
@@ -934,15 +935,6 @@ async function addBlockAfter(key){
   const nk='b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
   const rec={order,level:'內文',text:'',updatedAt:Date.now()};
   BLOCKS[nk]=rec; pendingEditKey=nk; syncEditList();          // instant
-  await set(ref(db,'content/blocks/'+nk),rec);
-}
-async function addPageBreakAfter(key){
-  const list=sortedBlocks(); const i=list.findIndex(b=>b.key===key);
-  const cur=list[i].order||(i+1)*10; const nxt=list[i+1]?list[i+1].order:cur+20;
-  const order=(cur+nxt)/2;
-  const nk='b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
-  const rec={order,level:'換頁',text:'',updatedAt:Date.now()};
-  BLOCKS[nk]=rec; syncEditList();                              // instant, no editor
   await set(ref(db,'content/blocks/'+nk),rec);
 }
 async function delBlock(key){
@@ -988,10 +980,8 @@ function syncEditList(){
 function updateCard(card,b){
   const sel=card.querySelector('.eb-level');
   if(sel && sel.value!==b.level){ sel.value=b.level; card.className='eblock lv-'+(LV_CLASS[b.level]||'prose'); }
-  const pen=card.querySelector('.eb-pencil'); if(pen) pen.style.display=(b.level==='換頁')?'none':'';
   const tx=card.querySelector('.eb-text'); if(!tx) return;
-  // page-break always shows the divider (close any open editor); others skip while editing
-  if(b.level!=='換頁' && tx.querySelector('textarea')) return;
+  if(tx.querySelector('textarea')) return;                       // don't clobber an open editor
   const html=blockBodyHTML(b);
   if(tx.innerHTML!==html) tx.innerHTML=html;
 }
@@ -1008,8 +998,7 @@ function renderEditList(){
   const c=$('#content'); c.innerHTML='';
   const bar=el('div','edit-toolbar');
   bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>`;
-  const organize=el('button','et-organize','🎞 簡報編排'); organize.onclick=openOrganizer; bar.append(organize);
-  const backup=el('button','et-organize','⬇ 備份'); backup.title='下載完整備份（內文＋簡報編排＋註解）'; backup.onclick=exportBackup; bar.append(backup);
+  const backup=el('button','et-organize','⬇ 備份'); backup.title='下載完整備份（內文＋全部註解）'; backup.onclick=exportBackup; bar.append(backup);
   const nav=el('div','et-nav');
   const prev=el('button','et-navbtn','◂ 上一章'); prev.disabled=idx<=0;
   prev.onclick=()=>{ if(idx>0){editChapterId=chs[idx-1].id;renderEditList();} };
@@ -1028,15 +1017,12 @@ function blockCard(b){
   LEVELS.forEach(l=>{const o=el('option',null,l);o.value=l;if(l===b.level)o.selected=true;sel.append(o);});
   sel.onchange=()=>saveBlock(b.key,{level:sel.value}).then(()=>{card.className='eblock lv-'+(LV_CLASS[sel.value]||'prose');});
   const edit=el('button','eb-ico eb-pencil','<svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l3 3"/></svg>');
-  edit.title='改字'; edit.onclick=()=>startEdit(card,b.key); if(b.level==='換頁') edit.style.display='none';
+  edit.title='改字'; edit.onclick=()=>startEdit(card,b.key);
   const add=el('button','eb-ico','<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>');
   add.title='在下方新增區塊'; add.onclick=()=>addBlockAfter(b.key);
-  const pbtn=el('button','eb-ico eb-pb','<svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="7" y2="12"/><line x1="10.5" y1="12" x2="13.5" y2="12"/><line x1="17" y1="12" x2="21" y2="12"/></svg>');
-  pbtn.title='在下方插入換頁'; pbtn.onclick=()=>addPageBreakAfter(b.key);
   const del=el('button','eb-ico eb-del','<svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>');
   del.title='刪除'; del.onclick=()=>delBlock(b.key);
-  bar.append(dh,sel,edit,add,pbtn,del);
-  if(b.level==='換頁'){ sel.style.display='none'; add.style.display='none'; pbtn.style.display='none'; }
+  bar.append(dh,sel,edit,add,del);
   const tx=el('div','eb-text'); tx.dataset.unit=b.key; tx.innerHTML=blockBodyHTML(b);
   card.append(bar,tx);
   dh.addEventListener('dragstart',e=>{dragKey=b.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text','');});
@@ -1083,10 +1069,10 @@ function startEdit(card,key){
 function exportBackup(){
   const annClean=Object.fromEntries(Object.entries(annAll).map(([k,v])=>{const c={...v};delete c._key;return [k,c];}));
   const data={
-    _meta:{app:'智勇人才班教材',exportedAt:new Date().toISOString(),version:2,
+    _meta:{app:'智勇人才班教材',exportedAt:new Date().toISOString(),version:3,
       counts:{blocks:Object.keys(BLOCKS).length,annotations:Object.keys(annClean).length}},
     title:DATA.title,subtitle:DATA.subtitle,frontMatter:DATA.frontMatter,
-    blocks:BLOCKS,decks:DECKS,annotations:annClean
+    blocks:BLOCKS,annotations:annClean
   };
   const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
   const d=new Date(),p=n=>String(n).padStart(2,'0');
@@ -1096,48 +1082,34 @@ function exportBackup(){
   setTimeout(()=>URL.revokeObjectURL(a.href),1500);
 }
 
-/* ============ DECK MODEL (shared by playback + organizer) ============ */
-let DECKS={};             // chapterKey -> { items: { id: {order,kind,ref|annKey,hidden} } }
-function sortedDeckItems(cid){
-  const node=(DECKS[cid]&&DECKS[cid].items)||{};
-  return Object.entries(node).map(([id,v])=>({id,...v})).sort((a,b)=>(a.order||0)-(b.order||0));
-}
-function chapterAnnotations(cid){
-  const keys=new Set(blocksForChapter(cid).map(b=>b.key));
-  return Object.values(annAll).filter(a=>keys.has(a.rowId));
-}
-/* reconcile stored deck with current content segments + annotations */
-function effectiveDeck(cid){
-  const segs=chapterSegments(cid);
-  const segIds=segs.map(s=>s[0].key);
-  const segById={}; segs.forEach(s=>segById[s[0].key]=s);
-  const stored=sortedDeckItems(cid);
-  const result=[]; const usedSeg=new Set(), usedAnno=new Set();
-  for(const it of stored){
-    if(it.kind==='content'){ if(segById[it.ref]&&!usedSeg.has(it.ref)){result.push({id:it.id,kind:'content',ref:it.ref,hidden:!!it.hidden});usedSeg.add(it.ref);} }
-    else if(it.kind==='anno'){ if(annAll[it.annKey]&&!usedAnno.has(it.annKey)){result.push({id:it.id,kind:'anno',annKey:it.annKey});usedAnno.add(it.annKey);} }
+/* ============ PRESENT MODE: auto-paginated slideshow ============
+   每個內文/引用段落自動成一頁；段落的註解自動接在其後成頁。
+   順序 = 編輯模式由上至下的順序。章/節僅作為內文頁上方的脈絡小標。 */
+let DECK=null;            // {slides:[{kind,...}], i:number}
+function buildDeckSlides(cid){
+  const slides=[]; let chTitle='', secTitle='';
+  for(const b of blocksForChapter(cid)){
+    if(b.level==='章'){ chTitle=b.text||''; secTitle=''; continue; }
+    if(b.level==='節'){ secTitle=b.text||''; continue; }
+    if(b.level==='換頁') continue;                              // legacy, ignored
+    slides.push({kind:'content',block:b,ch:chTitle,sec:secTitle});
+    (annByRow[b.key]||[]).slice().sort((x,y)=>x.startOffset-y.startOffset)
+      .forEach(a=>slides.push({kind:'anno',ann:a}));
   }
-  segIds.forEach((sid,idx)=>{
-    if(usedSeg.has(sid))return;
-    let at=result.length;
-    if(idx===0) at=0;
-    else for(let j=idx-1;j>=0;j--){ const p=result.findIndex(r=>r.kind==='content'&&r.ref===segIds[j]); if(p>=0){at=p+1;break;} }
-    result.splice(at,0,{id:null,kind:'content',ref:sid,hidden:false,_auto:true});
-  });
-  return {result,segById};
+  return slides;
 }
-
-/* ============ PRESENT MODE: slideshow playback ============ */
-let DECK=null;            // {slides:[{kind,seg|ann},...], i:number}
-function renderSlide(seg){
+function renderContentSlide(s){
   const wrap=el('div','deck-slide');
-  seg.forEach(b=>{
-    if(b.level==='章'){const parts=(b.text||'').split('、');
-      wrap.append(el('div','ch-head',`<div class="seal-num">${esc(parts[0]||'')}</div><h2>${esc(parts.slice(1).join('、'))}</h2>`));}
-    else if(b.level==='節'){wrap.append(el('div','sec-head',`<h3>${esc(b.text)}</h3>`));}
-    else{const d=el('div','unit '+(b.level==='引用'?'quote':'prose'));
-      d.innerHTML=esc(b.text||'').replace(/\n/g,'<br>'); wrap.append(d);}
-  });
+  if(s.ch||s.sec){
+    const ctx=el('div','deck-ctx');
+    if(s.ch)  ctx.append(el('div','deck-ctx-ch',esc(s.ch)));
+    if(s.sec) ctx.append(el('div','deck-ctx-sec',esc(s.sec)));
+    wrap.append(ctx);
+  }
+  const b=s.block;
+  const d=el('div','unit '+(b.level==='引用'?'quote':'prose'));
+  d.innerHTML=esc(b.text||'').replace(/\n/g,'<br>');
+  wrap.append(d);
   return wrap;
 }
 function renderAnnoSlide(ann){
@@ -1152,20 +1124,11 @@ function renderAnnoSlide(ann){
   wrap.innerHTML=html;
   return wrap;
 }
-function buildDeckSlides(cid){
-  const {result,segById}=effectiveDeck(cid);
-  const slides=[];
-  for(const it of result){
-    if(it.kind==='content'){ if(it.hidden)continue; const seg=segById[it.ref]; if(seg&&seg.length) slides.push({kind:'content',seg}); }
-    else if(it.kind==='anno'){ const a=annAll[it.annKey]; if(a) slides.push({kind:'anno',ann:a}); }
-  }
-  return slides;
-}
 function showSlide(i){
   if(!DECK)return;
   DECK.i=Math.max(0,Math.min(DECK.slides.length-1,i));
   const s=DECK.slides[DECK.i];
-  const node=s.kind==='anno'?renderAnnoSlide(s.ann):renderSlide(s.seg);
+  const node=s.kind==='anno'?renderAnnoSlide(s.ann):renderContentSlide(s);
   const st=$('#deckStage'); st.innerHTML=''; st.append(node); st.scrollTop=0;
   $('#deckPage').textContent=(DECK.i+1)+' / '+DECK.slides.length;
   const atStart=DECK.i<=0, atEnd=DECK.i>=DECK.slides.length-1;
@@ -1202,84 +1165,6 @@ $('#deckClose').onclick=closeDeck;
 $('#deckFs').onclick=()=>{ const d=$('#deck');
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
   else if(d.requestFullscreen) d.requestFullscreen().catch(()=>{}); };
-
-/* ============ PRESENT ORGANIZER (簡報編排) ============ */
-let ORG=null, orgCid=null, orgDrag=null;
-function firstLine(seg){
-  for(const b of seg){ const t=(b.text||'').trim(); if(t) return t.split('\n')[0]; }
-  return '（空白頁）';
-}
-async function saveDeck(){
-  const map={};
-  ORG.forEach((it,idx)=>{
-    if(!it.id){ it.id='d'+Date.now().toString(36)+idx.toString(36)+Math.floor(Math.random()*1e4).toString(36); it._auto=false; }
-    map[it.id]={order:idx*10,kind:it.kind};
-    if(it.kind==='content'){ map[it.id].ref=it.ref; if(it.hidden) map[it.id].hidden=true; }
-    else map[it.id].annKey=it.annKey;
-  });
-  await set(ref(db,'content/decks/'+orgCid+'/items'),map);
-}
-function openOrganizer(){
-  if(!editChapterId){alert('請先選擇章節。');return;}
-  orgCid=editChapterId;
-  ORG=effectiveDeck(orgCid).result;
-  $('#orgTitle').textContent='簡報編排 · '+(chapterList().find(c=>c.id===orgCid)?.title||'');
-  $('#organizer').classList.remove('hidden');
-  renderOrganizer();
-}
-function closeOrganizer(){ $('#organizer').classList.add('hidden'); ORG=null; }
-function renderOrganizer(){
-  const {segById}=effectiveDeck(orgCid);
-  const list=$('#orgList'); list.innerHTML='';
-  let visN=0;
-  ORG.forEach((it,idx)=>{
-    const row=el('div','org-item'+(it.kind==='content'&&it.hidden?' hidden-slide':'')); row.dataset.idx=idx;
-    const dh=el('span','org-drag','⋮⋮'); dh.draggable=true;
-    const isAnno=it.kind==='anno';
-    const badge=el('span','org-badge '+(isAnno?'b-anno':'b-content'), isAnno?'註解':'內文');
-    let prevTxt;
-    if(isAnno){ const a=annAll[it.annKey]; prevTxt='「'+(a?a.selectedText:'？')+'」'+(a&&a.note?' — '+a.note.slice(0,18):''); }
-    else { const seg=segById[it.ref]; prevTxt=seg?firstLine(seg):'（內容已移除）'; }
-    if(!(it.kind==='content'&&it.hidden)) visN++;
-    const num=el('span','org-num', (it.kind==='content'&&it.hidden)?'—':String(visN));
-    const prev=el('span','org-prev',esc(prevTxt));
-    row.append(dh,num,badge,prev);
-    if(it.kind==='content'){
-      const eye=el('button','org-act', it.hidden?'顯示':'隱藏');
-      eye.onclick=async()=>{ it.hidden=!it.hidden; await saveDeck(); renderOrganizer(); };
-      row.append(eye);
-    }else{
-      const rm=el('button','org-act','移除');
-      rm.onclick=async()=>{ ORG.splice(idx,1); await saveDeck(); renderOrganizer(); };
-      row.append(rm);
-    }
-    // drag reorder
-    dh.addEventListener('dragstart',e=>{orgDrag=idx;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text','');});
-    dh.addEventListener('dragend',()=>row.classList.remove('dragging'));
-    row.addEventListener('dragover',e=>{if(orgDrag===null||orgDrag===idx)return;e.preventDefault();
-      const after=e.offsetY>row.offsetHeight/2; row.classList.toggle('drop-after',after); row.classList.toggle('drop-before',!after);});
-    row.addEventListener('dragleave',()=>row.classList.remove('drop-after','drop-before'));
-    row.addEventListener('drop',async e=>{e.preventDefault();const after=row.classList.contains('drop-after');row.classList.remove('drop-after','drop-before');
-      if(orgDrag!==null&&orgDrag!==idx){ let to=idx+(after?1:0); const moved=ORG.splice(orgDrag,1)[0]; if(orgDrag<to)to--; ORG.splice(to,0,moved); await saveDeck(); renderOrganizer(); }
-      orgDrag=null;});
-    list.append(row);
-  });
-  // annotation pool (not yet in deck)
-  const inDeck=new Set(ORG.filter(i=>i.kind==='anno').map(i=>i.annKey));
-  const pool=$('#orgPool'); pool.innerHTML='';
-  const anns=chapterAnnotations(orgCid).filter(a=>!inDeck.has(a._key));
-  if(!anns.length){ pool.append(el('div','org-empty','（本章註解都已加入，或尚無註解）')); }
-  anns.forEach(a=>{
-    const row=el('div','org-add');
-    row.append(el('span','org-badge b-anno','註解'));
-    row.append(el('span','org-prev',esc('「'+a.selectedText+'」'+(a.note?' — '+a.note.slice(0,18):''))));
-    const add=el('button','org-addbtn','加入簡報');
-    add.onclick=async()=>{ ORG.push({id:null,kind:'anno',annKey:a._key}); await saveDeck(); renderOrganizer(); };
-    row.append(add); pool.append(row);
-  });
-}
-$('#orgClose').onclick=closeOrganizer;
-$('#organizer').onclick=e=>{ if(e.target.id==='organizer') closeOrganizer(); };
 
 boot();
 </script>
