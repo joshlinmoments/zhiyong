@@ -1,0 +1,5 @@
+# keep the backup tool in git, but never publish the backup data itself
+*.json
+*.md
+!.gitignore
+!backup.sh

@@ -899,7 +899,7 @@ document.addEventListener('click',e=>{
 
 /* ============ EDIT MODE: block editor ============ */
 const LV_CLASS={'章':'ch','節':'sec','內文':'prose','引用':'quote','換頁':'pb'};
-const LEVELS=['章','節','內文','引用','換頁'];
+const LEVELS=['章','節','內文','引用'];   // 換頁 only via its own button (avoid mis-select)
 let pendingEditKey=null;
 /* chapter scoping — edit one chapter at a time */
 function chapterList(){return sortedBlocks().filter(b=>b.level==='章').map(b=>({id:b.key,title:b.text}));}
@@ -934,6 +934,15 @@ async function addBlockAfter(key){
   const nk='b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
   const rec={order,level:'內文',text:'',updatedAt:Date.now()};
   BLOCKS[nk]=rec; pendingEditKey=nk; syncEditList();          // instant
+  await set(ref(db,'content/blocks/'+nk),rec);
+}
+async function addPageBreakAfter(key){
+  const list=sortedBlocks(); const i=list.findIndex(b=>b.key===key);
+  const cur=list[i].order||(i+1)*10; const nxt=list[i+1]?list[i+1].order:cur+20;
+  const order=(cur+nxt)/2;
+  const nk='b'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+  const rec={order,level:'換頁',text:'',updatedAt:Date.now()};
+  BLOCKS[nk]=rec; syncEditList();                              // instant, no editor
   await set(ref(db,'content/blocks/'+nk),rec);
 }
 async function delBlock(key){
@@ -1000,6 +1009,7 @@ function renderEditList(){
   const bar=el('div','edit-toolbar');
   bar.innerHTML=`<span class="et-chap">✎ ${cur?esc(cur.title):'（無章節）'}</span>`;
   const organize=el('button','et-organize','🎞 簡報編排'); organize.onclick=openOrganizer; bar.append(organize);
+  const backup=el('button','et-organize','⬇ 備份'); backup.title='下載完整備份（內文＋簡報編排＋註解）'; backup.onclick=exportBackup; bar.append(backup);
   const nav=el('div','et-nav');
   const prev=el('button','et-navbtn','◂ 上一章'); prev.disabled=idx<=0;
   prev.onclick=()=>{ if(idx>0){editChapterId=chs[idx-1].id;renderEditList();} };
@@ -1021,9 +1031,12 @@ function blockCard(b){
   edit.title='改字'; edit.onclick=()=>startEdit(card,b.key); if(b.level==='換頁') edit.style.display='none';
   const add=el('button','eb-ico','<svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>');
   add.title='在下方新增區塊'; add.onclick=()=>addBlockAfter(b.key);
+  const pbtn=el('button','eb-ico eb-pb','<svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="7" y2="12"/><line x1="10.5" y1="12" x2="13.5" y2="12"/><line x1="17" y1="12" x2="21" y2="12"/></svg>');
+  pbtn.title='在下方插入換頁'; pbtn.onclick=()=>addPageBreakAfter(b.key);
   const del=el('button','eb-ico eb-del','<svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>');
   del.title='刪除'; del.onclick=()=>delBlock(b.key);
-  bar.append(dh,sel,edit,add,del);
+  bar.append(dh,sel,edit,add,pbtn,del);
+  if(b.level==='換頁'){ sel.style.display='none'; add.style.display='none'; pbtn.style.display='none'; }
   const tx=el('div','eb-text'); tx.dataset.unit=b.key; tx.innerHTML=blockBodyHTML(b);
   card.append(bar,tx);
   dh.addEventListener('dragstart',e=>{dragKey=b.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text','');});
@@ -1066,11 +1079,21 @@ function startEdit(card,key){
     if(e.key==='Escape'){e.preventDefault();cancel.click();}
   };
 }
-function exportContent(){
-  const data={title:DATA.title,subtitle:DATA.subtitle,frontMatter:DATA.frontMatter,blocks:BLOCKS,exportedAt:new Date().toISOString()};
+/* one-click full backup: blocks + front matter + decks + all annotations */
+function exportBackup(){
+  const annClean=Object.fromEntries(Object.entries(annAll).map(([k,v])=>{const c={...v};delete c._key;return [k,c];}));
+  const data={
+    _meta:{app:'智勇人才班教材',exportedAt:new Date().toISOString(),version:2,
+      counts:{blocks:Object.keys(BLOCKS).length,annotations:Object.keys(annClean).length}},
+    title:DATA.title,subtitle:DATA.subtitle,frontMatter:DATA.frontMatter,
+    blocks:BLOCKS,decks:DECKS,annotations:annClean
+  };
   const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  const stamp=`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='智勇教材備份_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  a.download='智勇教材備份_'+stamp+'.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
 }
 
 /* ============ DECK MODEL (shared by playback + organizer) ============ */
