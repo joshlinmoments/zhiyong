@@ -267,10 +267,11 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 /* ---------- present deck (slideshow) ---------- */
 #deck{position:fixed;inset:0;z-index:80;background:#14110d;display:flex;align-items:center;justify-content:center}
 #deck.hidden{display:none}
-.deck-stage{width:min(1180px,92vw);max-height:90vh;overflow:auto;background:#fff;border-radius:10px;
+.deck-frame{width:min(1180px,92vw);max-height:90vh;display:flex;flex-direction:column;gap:.9rem}
+.deck-stage{flex:1;min-height:0;overflow:auto;background:#fff;border-radius:10px;
   padding:clamp(2rem,5vw,4.5rem) clamp(1.6rem,5vw,5rem);box-shadow:0 24px 80px rgba(0,0,0,.55)}
 .deck-slide .ch-head{margin-top:.4rem}
-.deck-slide .unit:first-child,.deck-slide .sec-head:first-child{margin-top:0}
+.deck-slide .unit:first-child{margin-top:0}
 .deck-nav{position:fixed;top:0;bottom:0;width:14vw;min-width:64px;border:0;background:transparent;
   color:rgba(255,255,255,.0);font-size:3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:.2s}
 .deck-prev{left:0} .deck-next{right:0}
@@ -293,11 +294,18 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 .deck-anno .embed{position:relative;width:100%;aspect-ratio:16/9;margin:1.2rem auto;border-radius:8px;overflow:hidden;background:#000}
 .deck-anno .embed iframe,.deck-anno .embed video{position:absolute;inset:0;width:100%;height:100%;border:0}
 .deck-anno .lk{display:block;margin:.5rem 0;color:var(--jade-dark);font-size:1.1rem}
-/* content-slide context header (章 / 節) */
-.deck-ctx{margin-bottom:1.6rem;padding-bottom:.7rem;border-bottom:1px solid var(--line)}
-.deck-ctx-ch{font-size:.95rem;color:var(--ochre);letter-spacing:.06em}
-.deck-ctx-sec{font-size:1.3rem;font-weight:600;color:var(--ink);margin-top:.15rem}
+/* gold context band — sits ABOVE the white card, only on content slides */
+.deck-ctx{background:linear-gradient(180deg,#f0d488,#e6c264);border:1px solid var(--gold-deep);
+  border-radius:10px;padding:.8rem 1.8rem;box-shadow:0 6px 18px rgba(0,0,0,.28);flex:none}
+.deck-ctx.hidden{display:none}
+.deck-ctx-ch{font-size:.95rem;color:#7a5a14;letter-spacing:.06em}
+.deck-ctx-sec{font-size:1.45rem;font-weight:600;color:#3a2a08;margin-top:.1rem;letter-spacing:.04em}
 .deck-slide .unit{font-size:calc(1.5rem * var(--reading-scale))}
+/*章 / 節 title slides (centred) */
+.deck-title{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:62vh}
+.deck-title .ch-head{margin:0}
+.deck-section .deck-sec-ch{color:var(--ochre);font-size:1.05rem;letter-spacing:.1em;margin-bottom:1.1rem}
+.deck-section .deck-sec-title{font-size:clamp(2rem,5.2vw,3rem);font-weight:600;letter-spacing:.22rem;color:var(--ink)}
 
 /* reading-mode annotation block (gold box below a paragraph) */
 .anno-stack{display:flex;flex-direction:column;gap:.5rem;margin:.2rem 0 1rem}
@@ -412,7 +420,10 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 <!-- present deck (slideshow) -->
 <div id="deck" class="hidden">
   <button class="deck-nav deck-prev" id="deckPrev" aria-label="上一頁">‹</button>
-  <div class="deck-stage" id="deckStage"></div>
+  <div class="deck-frame">
+    <div class="deck-ctx hidden" id="deckCtx"></div>
+    <div class="deck-stage" id="deckStage"></div>
+  </div>
   <button class="deck-nav deck-next" id="deckNext" aria-label="下一頁">›</button>
   <div class="deck-bar">
     <button class="deck-ctl" id="deckBarPrev" title="上一頁 (←)">‹</button>
@@ -1083,14 +1094,14 @@ function exportBackup(){
 }
 
 /* ============ PRESENT MODE: auto-paginated slideshow ============
-   每個內文/引用段落自動成一頁；段落的註解自動接在其後成頁。
-   順序 = 編輯模式由上至下的順序。章/節僅作為內文頁上方的脈絡小標。 */
+   章 → 獨立標題頁；節 → 獨立小節頁；每個內文/引用段落自動成一頁，
+   其註解自動接在後面成頁。內文頁上方另有金色章/節脈絡帶。順序 = 編輯順序。 */
 let DECK=null;            // {slides:[{kind,...}], i:number}
 function buildDeckSlides(cid){
   const slides=[]; let chTitle='', secTitle='';
   for(const b of blocksForChapter(cid)){
-    if(b.level==='章'){ chTitle=b.text||''; secTitle=''; continue; }
-    if(b.level==='節'){ secTitle=b.text||''; continue; }
+    if(b.level==='章'){ chTitle=b.text||''; secTitle=''; slides.push({kind:'chapter',title:chTitle}); continue; }
+    if(b.level==='節'){ secTitle=b.text||''; slides.push({kind:'section',ch:chTitle,title:secTitle}); continue; }
     if(b.level==='換頁') continue;                              // legacy, ignored
     slides.push({kind:'content',block:b,ch:chTitle,sec:secTitle});
     (annByRow[b.key]||[]).slice().sort((x,y)=>x.startOffset-y.startOffset)
@@ -1098,18 +1109,23 @@ function buildDeckSlides(cid){
   }
   return slides;
 }
-function renderContentSlide(s){
+function renderParaSlide(b){
   const wrap=el('div','deck-slide');
-  if(s.ch||s.sec){
-    const ctx=el('div','deck-ctx');
-    if(s.ch)  ctx.append(el('div','deck-ctx-ch',esc(s.ch)));
-    if(s.sec) ctx.append(el('div','deck-ctx-sec',esc(s.sec)));
-    wrap.append(ctx);
-  }
-  const b=s.block;
   const d=el('div','unit '+(b.level==='引用'?'quote':'prose'));
   d.innerHTML=esc(b.text||'').replace(/\n/g,'<br>');
   wrap.append(d);
+  return wrap;
+}
+function renderChapterSlide(s){
+  const wrap=el('div','deck-slide deck-title');
+  const parts=(s.title||'').split('、');
+  wrap.append(el('div','ch-head',`<div class="seal-num">${esc(parts[0]||'')}</div><h2>${esc(parts.slice(1).join('、'))}</h2>`));
+  return wrap;
+}
+function renderSectionSlide(s){
+  const wrap=el('div','deck-slide deck-title deck-section');
+  if(s.ch) wrap.append(el('div','deck-sec-ch',esc(s.ch)));
+  wrap.append(el('div','deck-sec-title',esc(s.title)));
   return wrap;
 }
 function renderAnnoSlide(ann){
@@ -1128,8 +1144,19 @@ function showSlide(i){
   if(!DECK)return;
   DECK.i=Math.max(0,Math.min(DECK.slides.length-1,i));
   const s=DECK.slides[DECK.i];
-  const node=s.kind==='anno'?renderAnnoSlide(s.ann):renderContentSlide(s);
-  const st=$('#deckStage'); st.innerHTML=''; st.append(node); st.scrollTop=0;
+  const ctx=$('#deckCtx'), st=$('#deckStage'); st.innerHTML='';
+  if(s.kind==='content'){
+    let h=''; if(s.ch) h+=`<div class="deck-ctx-ch">${esc(s.ch)}</div>`;
+    if(s.sec) h+=`<div class="deck-ctx-sec">${esc(s.sec)}</div>`;
+    ctx.innerHTML=h; ctx.classList.toggle('hidden',!h);
+    st.append(renderParaSlide(s.block));
+  }else{
+    ctx.classList.add('hidden'); ctx.innerHTML='';
+    st.append(s.kind==='chapter'?renderChapterSlide(s)
+            :s.kind==='section'?renderSectionSlide(s)
+            :renderAnnoSlide(s.ann));
+  }
+  st.scrollTop=0;
   $('#deckPage').textContent=(DECK.i+1)+' / '+DECK.slides.length;
   const atStart=DECK.i<=0, atEnd=DECK.i>=DECK.slides.length-1;
   $('#deckPrev').disabled=atStart; $('#deckBarPrev').disabled=atStart;
