@@ -160,10 +160,17 @@ body.present-mode #content{max-width:none;padding:2.2rem clamp(1.5rem,4vw,5rem) 
 mark.anno{background:rgba(178,58,46,.16);border-bottom:2px solid var(--cinnabar);
   border-radius:2px;cursor:pointer;padding:0 1px}
 mark.anno:hover{background:rgba(178,58,46,.28)}
+/* red highlight (劃重點) */
+.hl-red{color:var(--cinnabar);font-weight:600}
 
-/* selection floating button */
-#sel-btn{position:absolute;z-index:50;display:none;background:var(--cinnabar);color:#fff;border:0;
-  border-radius:999px;padding:.4rem .9rem;font-size:.9rem;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+/* selection floating toolbar */
+#sel-tools{position:absolute;z-index:50;display:flex;gap:.3rem;background:#2b2724;padding:.3rem;
+  border-radius:999px;box-shadow:0 6px 16px rgba(0,0,0,.32)}
+#sel-tools.hidden{display:none}
+#sel-tools button{border:0;background:transparent;color:#fff;border-radius:999px;padding:.32rem .8rem;
+  font-size:.86rem;cursor:pointer;white-space:nowrap}
+#sel-tools button:hover{background:rgba(255,255,255,.16)}
+#sel-tools #selHl{color:#ffb3ab}
 
 /* side panel (view annotation) */
 #panel{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
@@ -455,7 +462,11 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
   <main id="content"></main>
 </section>
 
-<button id="sel-btn">＋ 加註解</button>
+<div id="sel-tools" class="hidden">
+  <button id="selAnno">＋ 註解</button>
+  <button id="selHl">🖍 劃紅</button>
+  <button id="selUnhl">清除紅</button>
+</div>
 
 <!-- side panel -->
 <div id="panel">
@@ -561,6 +572,18 @@ const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=nu
 const esc=s=>s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const genId=p=>p+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+/* 網站標準色（道場視覺：青碧 × 朱印 × 宣紙金） */
+const STD_COLORS=[
+  {name:'墨黑',  hex:'#2B2724'},
+  {name:'淡墨',  hex:'#5A534B'},
+  {name:'朱印紅',hex:'#DC2B39'},
+  {name:'深金',  hex:'#B07F22'},
+  {name:'赭金',  hex:'#C8A063'},
+  {name:'青碧',  hex:'#6E9C8A'},
+  {name:'深青',  hex:'#4F7A69'},
+  {name:'宣紙',  hex:'#F4ECDA'},
+  {name:'純白',  hex:'#FFFFFF'},
+];
 
 /* ---------- font scale (slider) ---------- */
 let fsVal=+(localStorage.getItem('zy_fs2')||100);
@@ -748,26 +771,44 @@ function renderChapter(id){
 }
 
 /* ---------- text + annotation rendering ---------- */
+function blockHls(rowId){ const b=BLOCKS[rowId]; return (b&&Array.isArray(b.hl))?b.hl:[]; }
 function renderText(rowId,text){
-  const anns=(annByRow[rowId]||[]).slice().sort((a,b)=>a.startOffset-b.startOffset);
-  let out='',i=0,k=0;
-  const push=(seg)=>{out+=esc(seg).replace(/\n/g,'<br>');};
+  text=text||'';
+  const anns=(annByRow[rowId]||[]);
+  const hls=blockHls(rowId);
+  const annAt=i=>{ for(const a of anns){ if(i>=a.startOffset&&i<a.endOffset) return a; } return null; };
+  const hlAt=i=>{ for(const h of hls){ if(i>=h[0]&&i<h[1]) return true; } return false; };
+  let out='',i=0;
   while(i<text.length){
-    const a=anns[k];
-    if(a && i===a.startOffset && a.endOffset>a.startOffset){
-      out+=`<mark class="anno" data-key="${a._key}">`;
-      push(text.slice(a.startOffset,a.endOffset));
-      out+='</mark>';
-      i=a.endOffset; k++;
-      while(anns[k] && anns[k].startOffset<i) k++;   // skip overlaps
-    }else{
-      let next=text.length;
-      for(let j=k;j<anns.length;j++){if(anns[j].startOffset>=i){next=anns[j].startOffset;break;}}
-      push(text.slice(i,next)); i=next;
-    }
+    const a=annAt(i), h=hlAt(i);
+    let j=i+1; while(j<text.length && annAt(j)===a && hlAt(j)===h) j++;
+    let seg=esc(text.slice(i,j)).replace(/\n/g,'<br>');
+    if(h) seg=`<span class="hl-red">${seg}</span>`;
+    if(a) seg=`<mark class="anno" data-key="${a._key}">${seg}</mark>`;
+    out+=seg; i=j;
   }
   return out;
 }
+function normalizeRanges(rs){
+  rs=rs.map(r=>[r[0],r[1]]).filter(r=>r[1]>r[0]).sort((a,b)=>a[0]-b[0]);
+  const out=[]; for(const r of rs){ const last=out[out.length-1];
+    if(last && r[0]<=last[1]) last[1]=Math.max(last[1],r[1]); else out.push(r); }
+  return out;
+}
+async function addHighlight(sel){
+  const b=BLOCKS[sel.rowId]; if(!b){alert('此段落不支援劃重點。');return;}
+  await saveBlock(sel.rowId,{hl:normalizeRanges([...(b.hl||[]),[sel.start,sel.end]])}); clearSel();
+}
+async function removeHighlight(sel){
+  const b=BLOCKS[sel.rowId]; if(!b)return; const out=[];
+  for(const [a,c] of (b.hl||[])){
+    if(c<=sel.start||a>=sel.end){ out.push([a,c]); continue; }
+    if(a<sel.start) out.push([a,sel.start]);
+    if(c>sel.end) out.push([sel.end,c]);
+  }
+  await saveBlock(sel.rowId,{hl:normalizeRanges(out)}); clearSel();
+}
+function clearSel(){ hideSelBtn(); const s=window.getSelection(); if(s) s.removeAllRanges(); }
 
 /* ---------- compute char offset within a unit ---------- */
 function offsetOf(root,node,off){
@@ -786,12 +827,12 @@ function offsetOf(root,node,off){
   return done?res:acc;
 }
 
-/* ---------- selection -> add annotation ---------- */
-const selBtn=$('#sel-btn');
-function hideSelBtn(){selBtn.style.display='none';pendingSel=null;}
+/* ---------- selection -> annotate / highlight ---------- */
+const selTools=$('#sel-tools');
+function hideSelBtn(){selTools.classList.add('hidden');pendingSel=null;}
 document.addEventListener('mouseup',e=>{
   if(!editMode)return;
-  if(e.target===selBtn)return;
+  if(e.target&&e.target.closest&&e.target.closest('#sel-tools'))return;
   setTimeout(()=>{
     const sel=window.getSelection();
     if(!sel || sel.isCollapsed || !sel.rangeCount){hideSelBtn();return;}
@@ -805,12 +846,15 @@ document.addEventListener('mouseup',e=>{
     const txt=unitText(unit.dataset.unit).slice(s,en);
     pendingSel={rowId:unit.dataset.unit,start:s,end:en,text:txt};
     const r=sel.getRangeAt(0).getBoundingClientRect();
-    selBtn.style.display='block';
-    selBtn.style.left=(window.scrollX+r.left+r.width/2-40)+'px';
-    selBtn.style.top=(window.scrollY+r.top-44)+'px';
+    selTools.classList.remove('hidden');
+    const w=selTools.offsetWidth||180;
+    selTools.style.left=(window.scrollX+r.left+r.width/2-w/2)+'px';
+    selTools.style.top=(window.scrollY+r.top-46)+'px';
   },10);
 });
-selBtn.onclick=()=>{ if(pendingSel){editingKey=null;openModal(pendingSel);} };
+$('#selAnno').onclick=()=>{ if(pendingSel){editingKey=null;openModal(pendingSel);} };
+$('#selHl').onclick=()=>{ if(pendingSel) addHighlight(pendingSel); };
+$('#selUnhl').onclick=()=>{ if(pendingSel) removeHighlight(pendingSel); };
 
 function unitText(rowId){
   if(rowId==='front-preface')return DATA.frontMatter?.preface?.text||'';
@@ -826,6 +870,15 @@ document.addEventListener('click',e=>{
   const ann=annAll[m.dataset.key]; if(!ann)return;
   if(editMode){editingKey=m.dataset.key;openModal({rowId:ann.rowId,start:ann.startOffset,end:ann.endOffset,text:ann.selectedText},ann);}
   else openPanel(ann);
+});
+/* ---------- click plain text in edit mode -> start editing ---------- */
+document.addEventListener('click',e=>{
+  if(!editMode)return;
+  if(e.target.closest('mark.anno'))return;                 // annotations handled above
+  const tx=e.target.closest('.eb-text'); if(!tx)return;
+  if(tx.querySelector('textarea'))return;                  // already editing
+  const sel=window.getSelection(); if(sel && !sel.isCollapsed)return;   // user is selecting
+  const card=tx.closest('.eblock'); if(card) startEdit(card,card.dataset.key);
 });
 
 /* ---------- view panel ---------- */
