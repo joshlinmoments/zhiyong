@@ -375,9 +375,9 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 /* shared canvas: 16:9, elements positioned by %, text scales via container-query units */
 .free-canvas{position:relative;aspect-ratio:16/9;width:100%;background:#fff;overflow:hidden;container-type:size}
 .fc-el{position:absolute;box-sizing:border-box}
-.fc-text{line-height:1.35;white-space:pre-wrap;word-break:break-word;font-size:calc(var(--fs,7) * 1cqh)}
-.fc-image{display:flex;align-items:center;justify-content:center}
-.fc-image img{max-width:100%;max-height:100%;object-fit:contain}
+.fc-text{line-height:1.35;white-space:pre-wrap;word-break:break-word;font-size:calc(var(--fs,7) * 1cqh * var(--reading-scale,1))}
+.fc-image{overflow:hidden}
+.fc-image img{width:100%;height:100%;object-fit:contain;display:block}
 .fc-video{background:#000}
 .fc-video .embed{position:absolute;inset:0}
 .fc-video iframe,.fc-video video{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -401,18 +401,34 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 /* canvas editor overlay */
 #canvasEditor{position:fixed;inset:0;z-index:82;background:#14110d;display:flex;flex-direction:column}
 #canvasEditor.hidden{display:none}
-.ce-bar{display:flex;align-items:center;gap:.5rem;padding:.6rem 1rem;background:#1c1a17;color:#f4ecda;flex-wrap:wrap}
-.ce-bar .ce-title{font-weight:600;margin-right:.4rem}
-.ce-btn{border:1px solid #4a433b;background:#2d2925;color:#f4ecda;border-radius:7px;padding:.4rem .8rem;cursor:pointer;font-size:.86rem}
+.ce-bar{display:flex;align-items:center;gap:.5rem;padding:.55rem 1rem;background:#1c1a17;color:#f4ecda;flex-wrap:wrap}
+.ce-bar .ce-title{font-size:1.1rem;margin-right:.2rem}
+.ce-btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid #4a433b;background:#2d2925;
+  color:#f4ecda;border-radius:7px;padding:.4rem .7rem;cursor:pointer;font-size:.86rem;min-height:34px}
 .ce-btn:hover{background:#3a342e}
 .ce-btn.primary{background:#fff;color:#1c1a17;border-color:#fff;font-weight:600}
-.ce-btn.danger{color:#ff9b8a;border-color:#5a3a33}
+.ce-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;display:block}
 .ce-spacer{flex:1}
-.ce-fs{display:flex;align-items:center;gap:.4rem;color:#cfc7b6;font-size:.82rem}
-.ce-fs input{width:90px}
+/* contextual controls row */
+.ce-ctx{display:flex;align-items:center;gap:.3rem;padding:.45rem 1rem;background:#211e1b;flex-wrap:wrap;border-top:1px solid #2a2622}
+.ce-ctx.hidden{display:none}
+.ce-cbtn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 .45rem;
+  border:1px solid #4a433b;background:#2d2925;color:#f4ecda;border-radius:6px;cursor:pointer;font-size:.82rem}
+.ce-cbtn:hover{background:#3a342e}
+.ce-cbtn.on{background:var(--jade);border-color:var(--jade);color:#fff}
+.ce-cbtn.danger{color:#ff9b8a;border-color:#5a3a33}
+.ce-cbtn.ce-h{font-weight:700;font-family:"Noto Serif TC",serif}
+.ce-cbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ce-swatch{width:24px;height:24px;border-radius:5px;border:2px solid #4a433b;cursor:pointer;padding:0}
+.ce-swatch.on{border-color:#fff;box-shadow:0 0 0 2px var(--jade)}
+.ce-sep{width:1px;height:24px;background:#3a342e;margin:0 .3rem}
 .ce-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:1.2rem;min-height:0}
 .ce-canvas{position:relative;background:#fff;aspect-ratio:16/9;container-type:size;border-radius:6px;
-  width:min(1100px,90vw,calc(78vh * 16/9));box-shadow:0 16px 50px rgba(0,0,0,.5)}
+  width:min(1100px,90vw,calc(72vh * 16/9));box-shadow:0 16px 50px rgba(0,0,0,.5);overflow:hidden}
+.ce-guide{position:absolute;z-index:60;background:var(--cinnabar);pointer-events:none;box-shadow:0 0 4px rgba(220,43,57,.7)}
+.ce-guide.hidden{display:none}
+.ce-guide-v{left:50%;top:0;bottom:0;width:1px;margin-left:-.5px}
+.ce-guide-h{top:50%;left:0;right:0;height:1px;margin-top:-.5px}
 .ce-el{cursor:move;outline:1px dashed transparent}
 .ce-el:hover{outline-color:rgba(110,156,138,.6)}
 .ce-el.selected{outline:2px solid var(--jade);outline-offset:0}
@@ -501,19 +517,21 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 <!-- free-page canvas editor (PPT-style) -->
 <div id="canvasEditor" class="hidden">
   <div class="ce-bar">
-    <span class="ce-title">🎨 自訂頁面</span>
-    <button class="ce-btn" id="ceAddText">＋ 文字</button>
-    <button class="ce-btn" id="ceAddImage">＋ 圖片</button>
-    <button class="ce-btn" id="ceAddVideo">＋ 影片</button>
-    <span class="ce-fs hidden" id="ceFsCtl">字級 <input type="range" id="ceFs" min="2" max="22" step="0.5"></span>
-    <button class="ce-btn danger hidden" id="ceDel">刪除所選</button>
+    <span class="ce-title">🎨</span>
+    <button class="ce-btn" id="ceAddText" title="新增文字"><svg viewBox="0 0 24 24"><path d="M6 6h12M12 6v12"/></svg></button>
+    <button class="ce-btn" id="ceAddImage" title="新增圖片"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10.5" r="1.6"/><path d="M5 17l4-4 3 2.5L16 11l3 3"/></svg></button>
+    <button class="ce-btn" id="ceAddVideo" title="新增影片"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></svg></button>
     <span class="ce-spacer"></span>
     <button class="ce-btn" id="ceCancel">取消</button>
     <button class="ce-btn primary" id="ceDone">完成</button>
     <input type="file" id="ceFile" accept="image/*" class="hidden">
   </div>
-  <div class="ce-wrap"><div class="ce-canvas" id="ceCanvas"></div></div>
-  <div class="ce-hint">點選元素可拖曳移動、右下角圓點縮放；文字雙擊可編輯。</div>
+  <div class="ce-ctx hidden" id="ceCtx"></div>
+  <div class="ce-wrap"><div class="ce-canvas" id="ceCanvas">
+    <div class="ce-guide ce-guide-v hidden" id="ceGuideV"></div>
+    <div class="ce-guide ce-guide-h hidden" id="ceGuideH"></div>
+  </div></div>
+  <div class="ce-hint">拖曳移動、右下角圓點縮放、文字雙擊編輯；拖曳會自動對齊中線。可直接拖曳或貼上圖片。</div>
 </div>
 
 <script type="module">
@@ -1284,14 +1302,16 @@ function fcEl(id,e){
   const d=el('div','fc-el fc-'+e.type); d.dataset.id=id;
   d.style.left=(e.x||0)+'%'; d.style.top=(e.y||0)+'%';
   d.style.width=(e.w||20)+'%'; d.style.height=(e.h||20)+'%';
+  if(e.z!=null) d.style.zIndex=e.z;
   if(e.type==='text'){
     d.style.setProperty('--fs',e.fs||7);
-    d.style.color=e.color||'#2b2724';
+    d.style.color=e.color||'#2B2724';
     d.style.textAlign=e.align||'left';
-    d.style.fontWeight=e.weight||400;
+    d.style.fontWeight=e.weight||600;
+    d.style.textShadow=e.shadow?'0 2px 6px rgba(0,0,0,.45)':'none';
     d.textContent=e.text||'';
   }else if(e.type==='image'){
-    d.innerHTML=`<img src="${esc(e.url||'')}" alt="">`;
+    d.innerHTML=`<img src="${esc(e.url||'')}" alt="" style="object-fit:${e.cover?'cover':'contain'};object-position:${e.pos||'center'}">`;
   }else if(e.type==='video'){
     d.innerHTML=embedHTML(e.url||'');
   }
@@ -1385,15 +1405,21 @@ $('#deckFs').onclick=()=>{ const d=$('#deck');
 
 /* ============ FREE PAGE: PPT-style canvas editor ============ */
 let CE=null;             // {key, els, sel}
+const CE_HSIZES=[['H1',11],['H2',8.6],['H3',6.6],['H4',5]];
+const ceIco=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
 function openCanvasEditor(key){
   if(!BLOCKS[key])return;
   CE={key, els:JSON.parse(JSON.stringify(BLOCKS[key].els||{})), sel:null};
   $('#canvasEditor').classList.remove('hidden');
   renderCE();
 }
+function ceMaxZ(){ let m=0; Object.values(CE.els).forEach(e=>{ if((e.z||0)>m)m=e.z||0; }); return m; }
+function ceMinZ(){ let m=0; Object.values(CE.els).forEach(e=>{ if((e.z||0)<m)m=e.z||0; }); return m; }
+function ceNode(id){ return $('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`); }
+function ceCanvasRect(){ return $('#ceCanvas').getBoundingClientRect(); }
 function renderCE(){
-  const cv=$('#ceCanvas'); cv.innerHTML='';
-  Object.entries(CE.els).forEach(([id,e])=>cv.append(ceEl(id,e)));
+  const cv=$('#ceCanvas'); cv.querySelectorAll('.ce-el').forEach(n=>n.remove());
+  Object.entries(CE.els).sort((a,b)=>(a[1].z||0)-(b[1].z||0)).forEach(([id,e])=>cv.append(ceEl(id,e)));
   markCeSel();
 }
 function ceEl(id,e){
@@ -1407,65 +1433,111 @@ function ceEl(id,e){
 function ceSelect(id){ CE.sel=id; markCeSel(); }
 function markCeSel(){
   $('#ceCanvas').querySelectorAll('.ce-el').forEach(d=>d.classList.toggle('selected',d.dataset.id===CE.sel));
-  const e=CE.sel&&CE.els[CE.sel];
-  $('#ceDel').classList.toggle('hidden',!e);
-  const fsCtl=$('#ceFsCtl'); const isText=e&&e.type==='text';
-  fsCtl.classList.toggle('hidden',!isText);
-  if(isText){ $('#ceFs').value=e.fs||7; }
+  buildCtx();
 }
-function ceCanvasRect(){ return $('#ceCanvas').getBoundingClientRect(); }
+function ceCBtn(html,title,fn,cls){ const b=el('button','ce-cbtn'+(cls?' '+cls:''),html); b.title=title; b.onclick=fn; return b; }
+function ceSep(){ return el('span','ce-sep'); }
+function applyPos(id){ const n=ceNode(id),e=CE.els[id]; if(n){n.style.left=e.x+'%';n.style.top=e.y+'%';} }
+function buildCtx(){
+  const ctx=$('#ceCtx'); ctx.innerHTML='';
+  const e=CE.sel&&CE.els[CE.sel];
+  if(!e){ ctx.classList.add('hidden'); return; }
+  ctx.classList.remove('hidden');
+  ctx.append(ceCBtn(ceIco('<polyline points="6 14 12 8 18 14"/>'),'上移一層',()=>{e.z=ceMaxZ()+1;renderCE();}));
+  ctx.append(ceCBtn(ceIco('<polyline points="6 10 12 16 18 10"/>'),'下移一層',()=>{e.z=ceMinZ()-1;renderCE();}));
+  ctx.append(ceSep());
+  ctx.append(ceCBtn(ceIco('<line x1="12" y1="3" x2="12" y2="21"/><rect x="7" y="9" width="10" height="6" rx="1" fill="currentColor" stroke="none" opacity=".45"/>'),'水平置中',()=>{e.x=(100-e.w)/2;applyPos(CE.sel);}));
+  ctx.append(ceCBtn(ceIco('<line x1="3" y1="12" x2="21" y2="12"/><rect x="9" y="7" width="6" height="10" rx="1" fill="currentColor" stroke="none" opacity=".45"/>'),'垂直置中',()=>{e.y=(100-e.h)/2;applyPos(CE.sel);}));
+  if(e.type==='text') buildTextCtx(ctx,e);
+  if(e.type==='image') buildImageCtx(ctx,e);
+  ctx.append(ceSep());
+  ctx.append(ceCBtn(ceIco('<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/>'),'刪除所選',ceDelete,'danger'));
+}
+function buildTextCtx(ctx,e){
+  ctx.append(ceSep());
+  [['left','靠左','<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="17" x2="18" y2="17"/>'],
+   ['center','置中','<line x1="4" y1="7" x2="20" y2="7"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="5" y1="17" x2="19" y2="17"/>'],
+   ['right','靠右','<line x1="4" y1="7" x2="20" y2="7"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="6" y1="17" x2="20" y2="17"/>']]
+   .forEach(([v,t,p])=>{ const b=ceCBtn(ceIco(p),t+'對齊',()=>{e.align=v;const n=ceNode(CE.sel);if(n)n.style.textAlign=v;buildCtx();}); if((e.align||'left')===v)b.classList.add('on'); ctx.append(b); });
+  ctx.append(ceSep());
+  STD_COLORS.forEach(c=>{ const b=el('button','ce-swatch'); b.style.background=c.hex; b.title=c.name;
+    if((e.color||'').toLowerCase()===c.hex.toLowerCase()) b.classList.add('on');
+    b.onclick=()=>{ e.color=c.hex; const n=ceNode(CE.sel); if(n)n.style.color=c.hex; buildCtx(); };
+    ctx.append(b); });
+  ctx.append(ceSep());
+  CE_HSIZES.forEach(([k,fs])=>{ const b=ceCBtn(k,k+' 字級',()=>{e.fs=fs;const n=ceNode(CE.sel);if(n)n.style.setProperty('--fs',fs);buildCtx();},'ce-h'); if(Math.abs((e.fs||8.6)-fs)<0.05)b.classList.add('on'); ctx.append(b); });
+  ctx.append(ceSep());
+  const sh=ceCBtn(ceIco('<rect x="5" y="5" width="12" height="12" rx="2"/><rect x="9" y="9" width="12" height="12" rx="2" fill="currentColor" stroke="none" opacity=".35"/>'),'文字陰影',()=>{e.shadow=!e.shadow;const n=ceNode(CE.sel);if(n)n.style.textShadow=e.shadow?'0 2px 6px rgba(0,0,0,.45)':'none';buildCtx();}); if(e.shadow)sh.classList.add('on'); ctx.append(sh);
+}
+function buildImageCtx(ctx,e){
+  ctx.append(ceSep());
+  ctx.append(ceCBtn(ceIco('<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 15l5-4 4 3 3-2 6 5"/>'),'滿版背景（之後仍可縮放/移動調整局部）',()=>makeFullBleed(CE.sel)));
+  const cov=ceCBtn(ceIco('<rect x="5" y="5" width="14" height="14" rx="1"/><path d="M5 12h14M12 5v14" opacity=".4"/>'),'填滿裁切 ⇄ 完整顯示',()=>{e.cover=!e.cover;renderCE();ceSelect(CE.sel);}); if(e.cover)cov.classList.add('on'); ctx.append(cov);
+}
+function makeFullBleed(id){ const e=CE.els[id]; e.x=0;e.y=0;e.w=100;e.h=100;e.cover=true;e.z=ceMinZ()-1; renderCE(); ceSelect(id); }
+function ceDelete(){ if(CE.sel){ delete CE.els[CE.sel]; CE.sel=null; renderCE(); } }
+function ceBounds(e){ return e.cover?{minX:-200,maxX:100,minY:-200,maxY:100}:{minX:0,maxX:100-e.w,minY:0,maxY:100-e.h}; }
+function showGuide(axis,on){ $(axis==='v'?'#ceGuideV':'#ceGuideH').classList.toggle('hidden',!on); }
 function ceStartDrag(ev,id){
   ev.preventDefault(); ceSelect(id);
-  const r=ceCanvasRect(), e=CE.els[id]; const sx=ev.clientX, sy=ev.clientY, ox=e.x, oy=e.y;
-  const node=$('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`);
-  const mm=m=>{ e.x=clamp(ox+(m.clientX-sx)/r.width*100,0,100-e.w); e.y=clamp(oy+(m.clientY-sy)/r.height*100,0,100-e.h);
-    node.style.left=e.x+'%'; node.style.top=e.y+'%'; };
-  const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
+  const r=ceCanvasRect(), e=CE.els[id]; const sx=ev.clientX, sy=ev.clientY, ox=e.x, oy=e.y; const node=ceNode(id);
+  const mm=m=>{
+    let nx=ox+(m.clientX-sx)/r.width*100, ny=oy+(m.clientY-sy)/r.height*100;
+    const b=ceBounds(e); nx=clamp(nx,b.minX,b.maxX); ny=clamp(ny,b.minY,b.maxY);
+    const TH=1.5;
+    if(Math.abs(nx+e.w/2-50)<TH){ nx=50-e.w/2; showGuide('v',true);} else showGuide('v',false);
+    if(Math.abs(ny+e.h/2-50)<TH){ ny=50-e.h/2; showGuide('h',true);} else showGuide('h',false);
+    e.x=nx; e.y=ny; node.style.left=nx+'%'; node.style.top=ny+'%';
+  };
+  const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);showGuide('v',false);showGuide('h',false);};
   document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
 }
 function ceStartResize(ev,id){
   ev.preventDefault(); ceSelect(id);
-  const r=ceCanvasRect(), e=CE.els[id]; const sx=ev.clientX, sy=ev.clientY, ow=e.w, oh=e.h;
-  const node=$('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`);
-  const mm=m=>{ e.w=clamp(ow+(m.clientX-sx)/r.width*100,5,100-e.x); e.h=clamp(oh+(m.clientY-sy)/r.height*100,3,100-e.y);
+  const r=ceCanvasRect(), e=CE.els[id]; const sx=ev.clientX, sy=ev.clientY, ow=e.w, oh=e.h; const node=ceNode(id);
+  const maxW=e.cover?400:100-e.x, maxH=e.cover?400:100-e.y;
+  const mm=m=>{ e.w=clamp(ow+(m.clientX-sx)/r.width*100,5,maxW); e.h=clamp(oh+(m.clientY-sy)/r.height*100,3,maxH);
     node.style.width=e.w+'%'; node.style.height=e.h+'%'; };
   const mu=()=>{document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu);};
   document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
 }
 function ceEditText(id,node){
-  const e=CE.els[id]; const h=node.querySelector('.ce-handle'); if(h) h.remove();   // keep handle out of editable text
+  const e=CE.els[id]; const h=node.querySelector('.ce-handle'); if(h) h.remove();
   node.setAttribute('contenteditable','true'); node.focus();
   const sel=window.getSelection(), rg=document.createRange(); rg.selectNodeContents(node); sel.removeAllRanges(); sel.addRange(rg);
   const done=()=>{ node.removeEventListener('blur',done); e.text=node.innerText.replace(/\n+$/,''); renderCE(); ceSelect(id); };
   node.addEventListener('blur',done);
 }
-$('#ceAddText').onclick=()=>{ const id=genId('e');
-  CE.els[id]={type:'text',x:18,y:38,w:64,h:18,fs:8,text:'雙擊輸入文字',align:'center',color:'#2b2724',weight:600};
-  renderCE(); ceSelect(id);
-  setTimeout(()=>{ const n=$('#ceCanvas').querySelector(`.ce-el[data-id="${id}"]`); if(n) ceEditText(id,n); },30); };
-$('#ceAddImage').onclick=()=>$('#ceFile').click();
-$('#ceFile').onchange=async ev=>{ const f=ev.target.files[0]; if(!f)return;
+async function ceAddImageFile(f,x,y){
   try{ const url=await compressImage(f); const id=genId('e');
-    CE.els[id]={type:'image',x:25,y:18,w:50,h:55,url}; renderCE(); ceSelect(id);
+    CE.els[id]={type:'image',x:clamp(x,0,70),y:clamp(y,0,70),w:40,h:45,url,z:ceMaxZ()+1}; renderCE(); ceSelect(id);
   }catch(err){ alert('圖片處理失敗：'+err.message); }
-  ev.target.value=''; };
+}
+$('#ceAddText').onclick=()=>{ const id=genId('e');
+  CE.els[id]={type:'text',x:18,y:40,w:64,h:16,fs:8.6,text:'雙擊輸入文字',align:'center',color:'#2B2724',weight:600,z:ceMaxZ()+1};
+  renderCE(); ceSelect(id);
+  setTimeout(()=>{ const n=ceNode(id); if(n) ceEditText(id,n); },30); };
+$('#ceAddImage').onclick=()=>$('#ceFile').click();
+$('#ceFile').onchange=async ev=>{ const f=ev.target.files[0]; if(f) await ceAddImageFile(f,30,20); ev.target.value=''; };
 $('#ceAddVideo').onclick=()=>{ const u=prompt('貼上影片網址（YouTube / Vimeo / mp4）：'); if(!u)return;
-  const id=genId('e'); CE.els[id]={type:'video',x:18,y:16,w:64,h:62,url:u.trim()}; renderCE(); ceSelect(id); };
-$('#ceFs').oninput=e=>{ if(CE.sel&&CE.els[CE.sel]&&CE.els[CE.sel].type==='text'){
-  CE.els[CE.sel].fs=+e.target.value; const n=$('#ceCanvas').querySelector(`.ce-el[data-id="${CE.sel}"]`); if(n) n.style.setProperty('--fs',CE.els[CE.sel].fs); } };
-$('#ceDel').onclick=()=>{ if(CE.sel){ delete CE.els[CE.sel]; CE.sel=null; renderCE(); } };
+  const id=genId('e'); CE.els[id]={type:'video',x:18,y:16,w:64,h:62,url:u.trim(),z:ceMaxZ()+1}; renderCE(); ceSelect(id); };
+$('#ceCanvas').addEventListener('dragover',e=>e.preventDefault());
+$('#ceCanvas').addEventListener('drop',async e=>{ e.preventDefault();
+  const f=[...(e.dataTransfer.files||[])].find(x=>x.type.startsWith('image/')); if(!f)return;
+  const r=ceCanvasRect(); await ceAddImageFile(f,(e.clientX-r.left)/r.width*100-20,(e.clientY-r.top)/r.height*100-22); });
+document.addEventListener('paste',async e=>{
+  if($('#canvasEditor').classList.contains('hidden'))return;
+  const it=[...(e.clipboardData?.items||[])].find(i=>i.type.startsWith('image/')); if(!it)return;
+  const f=it.getAsFile(); if(f){ e.preventDefault(); await ceAddImageFile(f,30,22); }
+});
 $('#ceCanvas').onmousedown=e=>{ if(e.target.id==='ceCanvas'){ CE.sel=null; markCeSel(); } };
 $('#ceCancel').onclick=()=>{ $('#canvasEditor').classList.add('hidden'); CE=null; };
-$('#ceDone').onclick=async()=>{
-  const key=CE.key, els=CE.els;
-  $('#canvasEditor').classList.add('hidden'); CE=null;
-  await saveBlock(key,{els}); syncEditList();
-};
+$('#ceDone').onclick=async()=>{ const key=CE.key, els=CE.els; $('#canvasEditor').classList.add('hidden'); CE=null; await saveBlock(key,{els}); syncEditList(); };
 document.addEventListener('keydown',e=>{
   if($('#canvasEditor').classList.contains('hidden'))return;
   const ed=document.querySelector('.ce-el[contenteditable=true]');
   if(e.key==='Escape'&&!ed){ $('#ceCancel').click(); }
-  if((e.key==='Delete'||e.key==='Backspace')&&CE&&CE.sel&&!ed){ e.preventDefault(); $('#ceDel').click(); }
+  if((e.key==='Delete'||e.key==='Backspace')&&CE&&CE.sel&&!ed){ e.preventDefault(); ceDelete(); }
 });
 
 boot();
