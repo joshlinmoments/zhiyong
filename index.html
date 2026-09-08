@@ -375,7 +375,7 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 
 /* ============ FREE PAGE (PPT-style canvas) ============ */
 /* shared canvas: 16:9, elements positioned by %, text scales via container-query units */
-.free-canvas{position:relative;aspect-ratio:16/9;width:100%;background:#fff;overflow:hidden;container-type:size}
+.free-canvas{position:relative;aspect-ratio:16/9;width:100%;background:#fff;overflow:hidden;container-type:size;isolation:isolate}
 .fc-el{position:absolute;box-sizing:border-box}
 .fc-text{line-height:1.35;white-space:pre-wrap;word-break:break-word;font-size:calc(var(--fs,7) * 1cqh * var(--reading-scale,1))}
 .fc-image{overflow:hidden}
@@ -426,7 +426,7 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 .ce-sep{width:1px;height:24px;background:#3a342e;margin:0 .3rem}
 .ce-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:1.2rem;min-height:0}
 .ce-canvas{position:relative;background:#fff;aspect-ratio:16/9;container-type:size;border-radius:6px;
-  width:min(1100px,90vw,calc(72vh * 16/9));box-shadow:0 16px 50px rgba(0,0,0,.5);overflow:hidden}
+  width:min(1100px,90vw,calc(72vh * 16/9));box-shadow:0 16px 50px rgba(0,0,0,.5);overflow:hidden;isolation:isolate}
 .ce-guide{position:absolute;z-index:60;background:var(--cinnabar);pointer-events:none;box-shadow:0 0 4px rgba(220,43,57,.7)}
 .ce-guide.hidden{display:none}
 .ce-guide-v{left:50%;top:0;bottom:0;width:1px;margin-left:-.5px}
@@ -1160,7 +1160,7 @@ function freeCardBody(b){
   const hasEls=b.els&&Object.keys(b.els).length;
   if(hasEls){
     const pv=el('div','eb-free-preview');
-    const cv=el('div','free-canvas');
+    const cv=el('div','free-canvas'); if(b.bg) cv.style.background=b.bg;
     Object.entries(b.els).forEach(([id,e])=>cv.append(fcEl(id,e)));
     pv.append(cv,el('div','efp-edit','🎨 編輯版面'));
     pv.onclick=()=>openCanvasEditor(b.key);
@@ -1332,7 +1332,7 @@ function fcEl(id,e){
 }
 function renderFreeSlide(b){
   const wrap=el('div','deck-slide deck-free');
-  const cv=el('div','free-canvas');
+  const cv=el('div','free-canvas'); if(b.bg) cv.style.background=b.bg;
   Object.entries(b.els||{}).forEach(([id,e])=>cv.append(fcEl(id,e)));
   wrap.append(cv);
   return wrap;
@@ -1422,7 +1422,7 @@ const CE_HSIZES=[['H1',11],['H2',8.6],['H3',6.6],['H4',5]];
 const ceIco=p=>`<svg viewBox="0 0 24 24">${p}</svg>`;
 function openCanvasEditor(key){
   if(!BLOCKS[key])return;
-  CE={key, els:JSON.parse(JSON.stringify(BLOCKS[key].els||{})), sel:null};
+  CE={key, els:JSON.parse(JSON.stringify(BLOCKS[key].els||{})), bg:BLOCKS[key].bg||'', sel:null};
   $('#canvasEditor').classList.remove('hidden');
   renderCE();
 }
@@ -1432,6 +1432,7 @@ function ceNode(id){ return $('#ceCanvas').querySelector(`.ce-el[data-id="${id}"
 function ceCanvasRect(){ return $('#ceCanvas').getBoundingClientRect(); }
 function renderCE(){
   const cv=$('#ceCanvas'); cv.querySelectorAll('.ce-el').forEach(n=>n.remove());
+  cv.style.background=CE.bg||'';        // per-page background (empty → CSS default #fff)
   Object.entries(CE.els).sort((a,b)=>(a[1].z||0)-(b[1].z||0)).forEach(([id,e])=>cv.append(ceEl(id,e)));
   markCeSel();
 }
@@ -1533,7 +1534,11 @@ $('#ceAddText').onclick=()=>{ const id=genId('e');
 $('#ceAddImage').onclick=()=>$('#ceFile').click();
 $('#ceFile').onchange=async ev=>{ const f=ev.target.files[0]; if(f) await ceAddImageFile(f,30,20); ev.target.value=''; };
 $('#ceAddVideo').onclick=()=>{ const u=prompt('貼上影片網址（YouTube / Vimeo / mp4）：'); if(!u)return;
-  const id=genId('e'); CE.els[id]={type:'video',x:18,y:16,w:64,h:62,url:u.trim(),z:ceMaxZ()+1}; renderCE(); ceSelect(id); };
+  const id=genId('e');
+  // video fills the whole 16:9 canvas as a background layer; page turns black automatically
+  CE.els[id]={type:'video',x:0,y:0,w:100,h:100,url:u.trim(),z:ceMinZ()-1};
+  if(!CE.bg) CE.bg='#000';
+  renderCE(); ceSelect(id); };
 $('#ceCanvas').addEventListener('dragover',e=>e.preventDefault());
 $('#ceCanvas').addEventListener('drop',async e=>{ e.preventDefault();
   const f=[...(e.dataTransfer.files||[])].find(x=>x.type.startsWith('image/')); if(!f)return;
@@ -1545,7 +1550,7 @@ document.addEventListener('paste',async e=>{
 });
 $('#ceCanvas').onmousedown=e=>{ if(e.target.id==='ceCanvas'){ CE.sel=null; markCeSel(); } };
 $('#ceCancel').onclick=()=>{ $('#canvasEditor').classList.add('hidden'); CE=null; };
-$('#ceDone').onclick=async()=>{ const key=CE.key, els=CE.els; $('#canvasEditor').classList.add('hidden'); CE=null; await saveBlock(key,{els}); syncEditList(); };
+$('#ceDone').onclick=async()=>{ const key=CE.key, els=CE.els, bg=CE.bg||null; $('#canvasEditor').classList.add('hidden'); CE=null; await saveBlock(key,{els,bg}); syncEditList(); };
 document.addEventListener('keydown',e=>{
   if($('#canvasEditor').classList.contains('hidden'))return;
   const ed=document.querySelector('.ce-el[contenteditable=true]');
