@@ -540,6 +540,9 @@ body.edit-mode #content{padding-bottom:6rem}   /* clear space for the fixed bott
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, onValue, push, update, remove, set }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, setPersistence, browserSessionPersistence,
+         signInWithEmailAndPassword, signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 /* ============================================================
    CONFIG  —  Firebase 專案 zhiyong（Realtime Database，新加坡節點）。
    圖片以壓縮後 base64 存進 Realtime Database，不使用付費的 Storage。
@@ -552,13 +555,21 @@ const firebaseConfig = {
   messagingSenderId: "319490692836",
   appId:         "1:319490692836:web:45fc275371675b40ff7ef1"
 };
-const EDITOR_PASSWORD = "184179";           // 講者密碼
+/* Editor auth: 進編輯模式時用「真正的 Firebase 登入」驗證，密碼由使用者當場輸入、
+   不寫死在程式碼裡。EDITOR_EMAIL 只是帳號名稱（非機密）。
+   LEGACY_PASSWORD 是過渡用途：Firebase Auth 帳號尚未建立前仍可進編輯模式；
+   等 Auth 帳號 + 資料庫規則設好後，未登入者即使進了編輯畫面也無法寫入（規則擋下）。
+   遷移完成後可移除 LEGACY_PASSWORD 分支。 */
+const EDITOR_EMAIL    = "youthbody78@gmail.com";
+const LEGACY_PASSWORD = "184179";
 const FIREBASE_ON = !firebaseConfig.apiKey.startsWith("PASTE");
 
-let db=null;
+let db=null, auth=null;
 if (FIREBASE_ON){
   const app = initializeApp(firebaseConfig);
   db = getDatabase(app);
+  auth = getAuth(app);
+  setPersistence(auth, browserSessionPersistence).catch(()=>{}); // 分頁關閉即登出
 }
 
 /* compress an image file to a base64 data URL (no Storage needed) */
@@ -629,16 +640,22 @@ function setMode(on){
   }
   else{hideSelBtn();route();}
 }
-$('#btnEdit').onclick=()=>{
+$('#btnEdit').onclick=async ()=>{
   if(editMode)return;
   if(isMobile()){alert('編輯模式請在電腦上使用，手機僅供瀏覽。');return;}
   if(!FIREBASE_ON){alert('雲端尚未設定。');return;}
   const p=prompt('請輸入講者密碼以進入編輯模式：');
-  if(p===null)return;
-  if(p===EDITOR_PASSWORD){sessionStorage.setItem('zy_edit','1');setMode(true);}
+  if(p===null||p==='')return;
+  let ok=false;
+  if(auth){                                   // 主要路徑：真正的 Firebase 登入
+    try{ await signInWithEmailAndPassword(auth, EDITOR_EMAIL, p); ok=true; }
+    catch(err){ /* 帳號尚未建立或密碼不符 → 落到過渡分支 */ }
+  }
+  if(!ok && p===LEGACY_PASSWORD) ok=true;      // 過渡分支：Auth 帳號建立前仍可進入
+  if(ok){ sessionStorage.setItem('zy_edit','1'); setMode(true); }
   else alert('密碼錯誤');
 };
-$('#btnBrowse').onclick=()=>{ if(editMode){sessionStorage.removeItem('zy_edit');setMode(false);} };
+$('#btnBrowse').onclick=()=>{ if(editMode){sessionStorage.removeItem('zy_edit');if(auth)signOut(auth).catch(()=>{});setMode(false);} };
 if(sessionStorage.getItem('zy_edit')==='1' && FIREBASE_ON){/* will enable after load */}
 
 /* ---------- cloud content (blocks) ---------- */
