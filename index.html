@@ -129,6 +129,8 @@ body.on-cover .topbar{display:none}
 .sb-secs{margin:.1rem 0 .5rem .8rem;border-left:2px solid var(--line);padding-left:.3rem}
 .sb-secs a{display:block;padding:.28rem .5rem;font-size:.92rem;color:var(--ink-soft);text-decoration:none;border-radius:6px}
 .sb-secs a:hover{background:var(--paper-deep);color:var(--ink)}
+.sb-secs a.active-sec{background:var(--paper-deep);color:var(--ink);font-weight:600;box-shadow:inset 3px 0 0 var(--cinnabar)}
+.sb-secs a.active-sec::after{content:"◀ 目前";float:right;font-size:.68rem;color:var(--cinnabar);font-weight:600;letter-spacing:.02em}
 
 #content{padding:2.2rem clamp(1rem,5vw,4rem) 6rem;max-width:880px;margin:0 auto;width:100%}
 .present-btn{border:1px solid var(--line);background:#fff8ec;border-radius:999px;padding:.35rem .85rem;color:var(--ink-soft);font-size:.9rem}
@@ -591,6 +593,8 @@ let annByRow={};            // rowId -> [annotation,...]
 let annAll={};              // pushId -> annotation (with _key)
 let editMode=false;
 let currentChapterId=null;
+let currentReadKey=null;    // block key at top of viewport (Present start point)
+let currentSectionId=null;  // 節 currently in view (sidebar highlight)
 let editChapterId=null;     // which chapter is open in edit mode
 let pendingSel=null;        // {rowId,start,end,text}
 let editingKey=null;        // when editing existing annotation
@@ -723,7 +727,7 @@ function buildSidebar(){
     const a=el('a',null,esc(ch.title)); a.href=`#/chapter/${ch.id}`; wrap.append(a);
     const secs=el('div','sb-secs');
     ch.sections.forEach(s=>{ if(!s.title)return;
-      const sa=el('a',null,esc(s.title)); sa.href=`#/chapter/${ch.id}#${s.id}`; secs.append(sa);});
+      const sa=el('a',null,esc(s.title)); sa.href=`#/chapter/${ch.id}#${s.id}`; sa.dataset.sec=s.id; secs.append(sa);});
     wrap.append(secs); sb.append(wrap);
   });
 }
@@ -731,6 +735,30 @@ function markSidebar(){
   const active = editMode ? editChapterId : currentChapterId;
   document.querySelectorAll('.sb-ch').forEach(e=>e.classList.toggle('active',e.dataset.ch===active));
 }
+function markSidebarSection(){
+  document.querySelectorAll('.sb-secs a').forEach(a=>a.classList.toggle('active-sec',a.dataset.sec===currentSectionId));
+}
+/* ---------- reading-position tracker (scroll-spy) ----------
+   currentReadKey: block key of the paragraph/section at the top of the viewport
+   (used as the Present start point). currentSectionId: the 節 in view (sidebar highlight). */
+function trackReadPosition(){
+  if(editMode || document.body.classList.contains('on-cover')) return;
+  if(!$('#deck').classList.contains('hidden')) return;   // deck open → ignore
+  const th=72;                                            // just below the 46px topbar
+  const nodes=$('#content').querySelectorAll('[data-unit],[data-sec]');
+  let curKey=null, curSec=null;
+  nodes.forEach(n=>{
+    if(n.getBoundingClientRect().top<=th){
+      curKey = n.dataset.unit || n.dataset.sec;
+      if(n.dataset.sec) curSec = n.dataset.sec;
+    }
+  });
+  currentReadKey=curKey;
+  if(curSec!==currentSectionId){ currentSectionId=curSec; markSidebarSection(); }
+}
+let _rpTick=false;
+function onScrollTrack(){ if(_rpTick)return; _rpTick=true; requestAnimationFrame(()=>{_rpTick=false; trackReadPosition();}); }
+window.addEventListener('scroll', onScrollTrack, {passive:true});
 function setTopTitle(t){ const e=$('#homeTitle'); if(e) e.textContent = t || '智勇人才班教材'; }
 /* edit mode: clicking a chapter/section in the sidebar switches the edited chapter */
 function editHashChange(){
@@ -790,7 +818,7 @@ function renderChapter(id){
   ch.sections.forEach(s=>{
     if(s.title){
       const sh=el('div','sec-head',`<h3>${esc(s.title)}</h3>`);
-      sh.id=s.id; c.append(sh);
+      sh.id=s.id; sh.dataset.sec=s.id; c.append(sh);
     }
     s.units.forEach(u=>{
       const d=el('div','unit '+(u.kind==='quote'?'quote':'prose'));
@@ -798,7 +826,9 @@ function renderChapter(id){
       const ac=el('div','anno-stack'); ac.dataset.annorow=u.id; fillAnnoStack(ac,u.id); c.append(ac);
     });
   });
+  currentReadKey=null; currentSectionId=null;   // reset reading-position tracker for the new chapter
   window.scrollTo(0,0);
+  requestAnimationFrame(trackReadPosition);
 }
 
 /* ---------- text + annotation rendering ---------- */
@@ -1068,6 +1098,9 @@ function toggleSidebar(force){
   const open = force!==undefined ? force : !$('#sidebar').classList.contains('open');
   $('#sidebar').classList.toggle('open',open);
   $('#sb-scrim').classList.toggle('open',open);
+  if(open){ trackReadPosition();                           // refresh highlight before showing
+    const act=$('#sidebar').querySelector('.sb-secs a.active-sec, .sb-ch.active');
+    if(act) act.scrollIntoView({block:'center'}); }
 }
 $('#sbToggle').onclick=()=>toggleSidebar();
 $('#sb-scrim').onclick=()=>toggleSidebar(false);
@@ -1294,7 +1327,7 @@ function buildDeckSlides(cid){
   const slides=[]; let chTitle='', secTitle='';
   for(const b of blocksForChapter(cid)){
     if(b.level==='章'){ chTitle=b.text||''; secTitle=''; slides.push({kind:'chapter',title:chTitle}); continue; }
-    if(b.level==='節'){ secTitle=b.text||''; slides.push({kind:'section',ch:chTitle,title:secTitle}); continue; }
+    if(b.level==='節'){ secTitle=b.text||''; slides.push({kind:'section',ch:chTitle,title:secTitle,key:b.key}); continue; }
     if(b.level==='換頁') continue;                              // legacy, ignored
     if(b.level==='自訂頁'){ slides.push({kind:'free',block:b}); continue; }
     slides.push({kind:'content',block:b,ch:chTitle,sec:secTitle});
@@ -1385,6 +1418,15 @@ function showSlide(i){
   $('#deckPrev').disabled=atStart; $('#deckBarPrev').disabled=atStart;
   $('#deckNext').disabled=atEnd;   $('#deckBarNext').disabled=atEnd;
 }
+/* map the current reading position to a deck slide index (start Present there) */
+function deckStartIndex(slides){
+  const k = editMode ? null : currentReadKey;
+  if(!k) return 0;
+  const idx = slides.findIndex(s =>
+    (s.kind==='content' && s.block.key===k) ||
+    (s.kind==='section' && s.key===k));
+  return idx<0 ? 0 : idx;
+}
 function openDeck(cid){
   if(!cid){alert('請先進入一個章節，再按展示。');return;}
   const slides=buildDeckSlides(cid);
@@ -1393,7 +1435,7 @@ function openDeck(cid){
   $('#deck').classList.remove('hidden');
   $('#presentBtn').classList.add('on');
   document.addEventListener('keydown',deckKey);
-  showSlide(0);
+  showSlide(deckStartIndex(slides));
 }
 function closeDeck(){
   DECK=null;
