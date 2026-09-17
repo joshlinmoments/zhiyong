@@ -949,6 +949,11 @@ function embedHTML(url){
   if(m) return `<div class="embed"><iframe src="https://www.youtube.com/embed/${m[1]}" allowfullscreen frameborder="0"></iframe></div>`;
   m=url.match(/vimeo\.com\/(\d+)/);
   if(m) return `<div class="embed"><iframe src="https://player.vimeo.com/video/${m[1]}" allowfullscreen frameborder="0"></iframe></div>`;
+  m=url.match(/instagram\.com\/(reels?|p|tv)\/([\w-]+)/);
+  if(m){ const type=m[1]==='reels'?'reel':m[1];
+    return `<div class="embed embed-portrait"><iframe src="https://www.instagram.com/${type}/${m[2]}/embed" allowfullscreen frameborder="0" scrolling="no"></iframe></div>`; }
+  if(/(?:^|\.)facebook\.com\/|fb\.watch\//.test(url))
+    return `<div class="embed"><iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false" allowfullscreen frameborder="0" scrolling="no" allow="autoplay; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
   if(/\.(mp4|webm|ogg)(\?|#|$)/i.test(url)) return `<div class="embed"><video src="${esc(url)}" controls></video></div>`;
   return `<a class="lk" href="${esc(url)}" target="_blank" rel="noopener">▶ ${esc(url)}</a>`;
 }
@@ -998,7 +1003,7 @@ function openModal(sel,ann){
       <button class="addbtn" id="m-imgurl">＋ 貼圖片網址</button>
       <input type="file" id="m-file" accept="image/*" class="hidden">
     </div>
-    <label style="margin-top:1rem">嵌入影片 <span class="muted">（YouTube / Vimeo / mp4 網址）</span></label>
+    <label style="margin-top:1rem">嵌入影片 <span class="muted">（YouTube / Vimeo / Facebook / Instagram / mp4 網址）</span></label>
     <div id="m-videos"></div>
     <button class="addbtn" id="m-addvideo">＋ 嵌入影片</button>
     <label style="margin-top:1rem">連結 <span class="muted">（多個）</span></label>
@@ -1575,7 +1580,7 @@ $('#ceAddText').onclick=()=>{ const id=genId('e');
   setTimeout(()=>{ const n=ceNode(id); if(n) ceEditText(id,n); },30); };
 $('#ceAddImage').onclick=()=>$('#ceFile').click();
 $('#ceFile').onchange=async ev=>{ const f=ev.target.files[0]; if(f) await ceAddImageFile(f,30,20); ev.target.value=''; };
-$('#ceAddVideo').onclick=()=>{ const u=prompt('貼上影片網址（YouTube / Vimeo / mp4）：'); if(!u)return;
+$('#ceAddVideo').onclick=()=>{ const u=prompt('貼上影片網址（YouTube / Vimeo / Facebook / Instagram / mp4）：'); if(!u)return;
   const id=genId('e');
   // video fills the whole 16:9 canvas as a background layer; page turns black automatically
   CE.els[id]={type:'video',x:0,y:0,w:100,h:100,url:u.trim(),z:ceMinZ()-1};
