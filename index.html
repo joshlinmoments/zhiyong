@@ -1580,11 +1580,14 @@ $('#ceAddText').onclick=()=>{ const id=genId('e');
   setTimeout(()=>{ const n=ceNode(id); if(n) ceEditText(id,n); },30); };
 $('#ceAddImage').onclick=()=>$('#ceFile').click();
 $('#ceFile').onchange=async ev=>{ const f=ev.target.files[0]; if(f) await ceAddImageFile(f,30,20); ev.target.value=''; };
-$('#ceAddVideo').onclick=()=>{ const u=prompt('貼上影片網址（YouTube / Vimeo / Facebook / Instagram / mp4）：'); if(!u)return;
-  const id=genId('e');
-  // video fills the whole 16:9 canvas as a background layer; page turns black automatically
-  CE.els[id]={type:'video',x:0,y:0,w:100,h:100,url:u.trim(),z:ceMinZ()-1};
-  if(!CE.bg) CE.bg='#000';
+$('#ceAddVideo').onclick=()=>{ const raw=prompt('貼上影片網址（YouTube / Vimeo / Facebook / Instagram / mp4）：'); if(!raw)return;
+  const u=raw.trim(); const id=genId('e');
+  // portrait sources (Reels / Shorts) get a tall centered 9:16 frame; others fill 16:9.
+  // portrait geometry on a 16:9 canvas: w/h = (9/16)^2 ≈ 0.316 → full-height frame is ~31.6% wide.
+  const portrait=/facebook\.com\/reel\/|instagram\.com\/reels?\/|youtube\.com\/shorts\//i.test(u);
+  const box=portrait?{x:34.2,y:0,w:31.6,h:100}:{x:0,y:0,w:100,h:100};
+  CE.els[id]={type:'video',...box,url:u,z:ceMinZ()-1};
+  if(!CE.bg) CE.bg='#000';               // page turns black automatically
   renderCE(); ceSelect(id); };
 $('#ceCanvas').addEventListener('dragover',e=>e.preventDefault());
 $('#ceCanvas').addEventListener('drop',async e=>{ e.preventDefault();
